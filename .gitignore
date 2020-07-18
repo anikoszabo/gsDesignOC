@@ -1,7 +1,8 @@
 .Rproj.user
-nuweb\*.log
-nuweb\*.aux
-nuweb\*.bbl
-nuweb\*.blg
-nuweb\*.out
-nuweb\*.synctex
+nuweb/*.log
+nuweb/*.aux
+nuweb/*.bbl
+nuweb/*.blg
+nuweb/*.out
+nuweb/*.tex
+nuweb/*.synctex
