@@ -1,0 +1,18 @@
+Package: gsDesignOC
+Title: Operating-characteristics Guided Group Sequential Design
+Version: 0.0.0.9000
+Authors@R: 
+    person(given = "Aniko",
+           family = "Szabo",
+           role = c("aut", "cre"),
+           email = "aszabo@mcw.edu",
+           comment = c(ORCID = "0000-0002-8129-0614"))
+Description: Derives group-sequential design based on pre-specified 
+    operating characteristics.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports:
+    gsDesign
+Suggests: 
+    testthat
