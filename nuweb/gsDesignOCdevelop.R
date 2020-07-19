@@ -1,11 +1,11 @@
 library(devtools)
 library(covr)
-source('z:/RForge/Nuweb.R')
+source('nuweb/Nuweb.R')
 gs <- as.package("../gsDesignOC")
 
 
 # initial setup
-use_testthat()
+#use_testthat()
 
 nuweb(gs)
 document(gs)
