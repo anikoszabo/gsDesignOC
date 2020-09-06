@@ -162,6 +162,27 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 
 @o ../R/gsDesignOC.R
 @{
+#'Operating characteristics of a potential design
+#'
+#'The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the
+#'\code{gsDesignOC} function.
+#'
+#'@@export
+#'@@param x object of class \code{gsDesignOC}
+#'@@return a list with components for each of the possible arguments
+#'@@author Aniko Szabo
+#'@@keywords
+#'@@examples
+#'
+#'ocControl(optim.penalty = 100)
+
+oc <- function(x){
+  list(optim.penalty = optim.penalty)
+}
+@}
+
+@o ../R/gsDesignOC.R
+@{
 #'Control values for gsDesignOC
 #'
 #'The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the
