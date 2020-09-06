@@ -39,7 +39,7 @@
 #'@return an object of class \code{gsDesignOC}
 #'@author Aniko Szabo
 #'@references Szabo, A, Tarima, S (?) Operating-characteristic guided design of group-sequential trials.
-#'@keywords nonparametric
+#'@keywords nonparametric design
 #'@examples
 #'
 #'gsDesignOC(0.3, thA.seq = c(1, 0.5), min.under="alt")
@@ -96,8 +96,8 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
                                   th0=th0, thA=thA, sig.level_final = sig.level_final,
                                   power=power)
       Q <-
-        optim.penalty*abs(dp$typeI - sig.level)/(sig.level*(1-sig.level)) +
-        optim.penalty*abs(dp$pow - power)/(power*(1-power)) +
+        controlvals$optim.penalty * abs(dp$typeI - sig.level)/(sig.level*(1-sig.level)) +
+        controlvals$optim.penalty * abs(dp$pow - power)/(power*(1-power)) +
         dp$enA
       #n
       Q
@@ -117,11 +117,264 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   n.I <- cumsum(oo$par)/n
   if (!is.null(sig.level_final)) n.I <- head(n.I, -1)
 
-  dpo <- design.properties(n=n, n.I = n.I, thA.seq = thA.seq, th0.seq = th0.seq,
-                               th0=th0, thA=thA, sig.level_final = sig.level_final,
-                               power=power)
 
-  c(list(n = n, n.I = n.I), dpo)
-
+  res <- list(n = n, n.I = n.I, thA=thA, thA.seq=thA.seq,
+              th0=th0, th0.seq=th0.seq, min.under=min.under,
+              sig.level = sig.level, sig.level_final=sig.level_final,
+              power=power, power.futility = power.futility,
+              futility.type = futility.type, mix.w = mix.w)
+  class(res) <- "gsDesignOC"
+  res
 }
 
+
+#'Operating characteristics of a potential design
+#'
+#'The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the
+#'\code{gsDesignOC} function.
+#'
+#'@export
+#'@param x object of class \code{gsDesignOC}
+#'@return
+#'@author Aniko Szabo
+#'@keywords design
+#'@examples
+#'
+#'
+
+oc <- function(x){}
+
+design.properties <- function(n, n.I, thA.seq, th0.seq, th0, thA,
+                               sig.level_final, power){}
+#'design.properties <- function(n, n.I, thA.seq, th0.seq, th0=.th0, thA=.thA,
+#'                               sig.level_final=.alpha*0.8, power=1-.beta){
+#'
+#'  res0 <- overall.crossprob(thA.seq, th0.seq, n.I, n, theta=th0,
+#'                                 sig.level_final=sig.level_final,
+#'                             power=power)
+#'  typeI <- res0$cross.up
+#'  resA <- overall.crossprob(thA.seq, th0.seq, n.I, n, theta=thA,
+#'                                 sig.level_final=sig.level_final,
+#'                             power=power)
+#'  pow <- resA$cross.up
+#'  enA <- resA$en
+#'  list(typeI=typeI, power=pow, enA = enA, bounds=res0$bounds)
+#'}
+
+#'Control values for gsDesignOC
+#'
+#'The values supplied in the function call replace the defaults and a list with all possible
+#'arguments is returned. The returned list is used as the \code{control} argument to the
+#'\code{gsDesignOC} function.
+#'
+#'@export
+#'@param optim.penalty numeric; relative weight of terms ensuring target type I and type II
+#'errors versus sample size in optimization routine
+#'@return a list with components for each of the possible arguments
+#'@author Aniko Szabo
+#'@keywords design
+#'@examples
+#'
+#'ocControl(optim.penalty = 100)
+
+ocControl <- function(optim.penalty = 1000){
+  list(optim.penalty = optim.penalty)
+}
+
+#'Conversion between nominal significance levels and alternative hypothesis values
+#'
+#' The \code{convert.bounds} function performs conversion between nominal significance levels
+#' for testing eqn{H_0: \theta=\theta_0}{H0: theta=theta0} and the values for the alternatives that have a prespecified power
+#' when \eqn{H_0}{H0} is tested at the nominal level.
+#'
+#' The \code{convert.bounds2} extends this function for both and efficacy and futility boundary,
+#' where for the futility boundary the hypothesis eqn{H_A: \theta=\theta_A}{HA: theta=thetaA}  is tested.
+
+#' The power is cumulative over the previous stages.
+#
+#' Either the first 2 parameters has to be specified, and the other one will be computed.
+
+#'@export
+#'@param nominal.level numeric vector (for \code{convert.bounds}) or
+#'  numeric matrix with two rows (for \code{convert.bounds2}) of the nominal significance level for each stage.
+#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
+#'@param nominal.level numeric vector (for \code{convert.bounds}) or
+#'  numeric matrix with two rows (for \code{convert.bounds2}) of the alternative hypotheses for each stage.
+#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
+#'@param n integer vector of sample sizes of each stage. Its sum is the total study sample size.
+#'@param power numeric, the target power at each stage.
+#'@param theta.null numeric, the null hypothesis being tested
+#'@param power.futility numeric, the target power for futility testing at each stage.
+#'@param theta.alt numeric, the alternative hypothesis being tested for the futility boundary.
+
+#'@return a list with all the inputs, with the NULL component filled in
+#'@author Aniko Szabo
+#'@keywords internal
+#'@examples
+#'
+#'(c1 <- convert.bounds(nominal.level = c(0.01, 0.02),
+#'                       n = c(30, 50), power=0.8, theta.null=0))
+#' convert.bounds(theta = c1$theta, n = c(30, 50), power=0.8, theta.null=0)$nominal.level
+
+convert.bounds <- function(nominal.level=NULL, theta=NULL, n, power, theta.null){
+  if (sum(sapply(list(nominal.level, theta), is.null)) !=  1)
+    stop("exactly one of 'nominal.level' and 'theta' must be NULL")
+
+  zb <- qnorm(power)
+
+
+  if (is.null(theta)){
+    .pow <- function(th, bounds, ns){
+      kk  <- length(bounds)
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
+                          a = rep(-20, kk), b=bounds)
+      sum(gg$upper$prob) - power
+    }
+    k <- length(nominal.level)
+    cutoff <- qnorm(nominal.level, lower=FALSE)
+    theta <- theta.null + (cutoff + zb)/sqrt(n)  # initial guess
+    if (k >=2){
+      for (idx in 2:k){
+          res <- uniroot(f=.pow, interval=c(0, theta[idx]),
+                        bounds=cutoff[1:idx], ns=n[1:idx])
+          theta[idx] <- res$root
+      }
+    }
+  } else if (is.null(nominal.level)){
+    .pow <- function(x, prev.bounds, ns, theta){
+      kk  <- length(prev.bounds) + 1
+      gg <- gsDesign::gsProbability(k=kk, theta=theta, n.I =ns,
+                          a = rep(-20, kk), b=c(prev.bounds,x))
+      sum(gg$upper$prob) - power
+    }
+    k <- length(theta)
+    cutoff <- (theta - theta.null)*sqrt(n) - zb  # initial guess
+    if (k >= 2){
+      for (idx in 2:k){
+        res <- tryCatch(uniroot(f=.pow, interval=c(-20,20),
+                       prev.bounds=cutoff[1:(idx-1)], ns=n[1:idx],
+                       theta=theta[idx]), error=function(e)e)
+        if ("error" %in% class(res)) browser()
+        cutoff[idx] <- res$root
+      }
+    }
+    nominal.level <- pnorm(cutoff, lower=FALSE)
+  } else if (is.null(n)){
+    .pow <- function(x, prev.ns, bounds, theta){
+      kk  <- length(prev.ns) + 1
+      gg <- gsDesign::gsProbability(k=kk, theta=theta, n.I =c(prev.ns,x),
+                          a = rep(-20, kk), b=bounds)
+      sum(gg$upper$prob) - power
+    }
+    k <- length(theta)
+    cutoff <- qnorm(nominal.level, lower=FALSE)
+    n <- (cutoff + zb)^2 / (theta - theta.null)^2 # initial guess
+    if (k >= 2){
+      for (idx in 2:k){
+        res <- uniroot(f=.pow, interval=c(sum(n[idx-1]), sum(n)*2),
+                       prev.ns = n[1:(idx-1)],
+                       bounds=cutoff[1:idx],
+                       theta=theta[idx])
+        n[idx] <- res$root
+      }
+    }
+  }
+
+  res <- list(nominal.level = nominal.level,
+              theta = theta,
+              n = n,
+              cutoff = cutoff,
+              theta.null = theta.null,
+              power = power)
+  res
+}
+
+#'@describeIn convert.bounds Conversion between nominal significance and alternatives with both futility and efficacy
+#'@export
+#'@keywords internal
+#'@examples
+#'(c2 <- convert.bounds2(nominal.level = rbind(c(0.01, 0.02), c(0.05,0.1)),
+#'                       n = c(30, 50), power=0.8, theta.null=0, power.futility=0.9, theta.alt=0.2))
+#' convert.bounds2(theta = c2$theta, n = c(30, 50), power=0.8, theta.null=0,
+#'                power.futility=0.9, theta.alt=0.2)$nominal.level
+
+convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
+                         power, theta.null, power.futility, theta.alt){
+  if (sum(sapply(list(nominal.level, theta), is.null)) !=  1)
+    stop("exactly one of 'nominal.level' and 'theta' must be NULL")
+
+  zb <- qnorm(power)
+
+  if (is.null(theta)){
+    .powU <- function(th, bounds, ns){
+      kk  <- NCOL(bounds)
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
+                          a =bounds[2,], b=bounds[1,])
+      sum(gg$upper$prob) - power
+    }
+    .powL <- function(th, bounds, ns){
+      kk  <- NCOL(bounds)
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
+                          a =bounds[2,], b=bounds[1,])
+      sum(gg$lower$prob) - power
+    }
+    k <- NCOL(nominal.level)
+    cutoffs <- qnorm(nominal.level,lower=FALSE)
+    thetaU <- theta.null + (cutoffs[1,] + zb)/sqrt(n)  # initial guess
+    thetaL <- theta.null + (cutoffs[2,] - zb)/sqrt(n)  # initial guess
+
+    if (k >=2){
+      for (idx in 2:k){
+        resU <- uniroot(f=.powU, interval=c(-20, 20),
+                        bounds=cutoffs[,1:idx,drop=FALSE], ns=n[1:idx])
+        thetaU[idx] <- resU$root
+        resL <- uniroot(f=.powL, interval=c(-20,20),
+                        bounds=cutoffs[,1:idx,drop=FALSE], ns=n[1:idx])
+        thetaL[idx] <- resL$root
+      }
+    }
+    theta <- rbind(thetaU, thetaL)
+  } else if (is.null(nominal.level)){
+    .powU <- function(x, prev.bounds, ns, ths){
+      kk  <- NCOL(prev.bounds) + 1
+      gg <- gsDesign::gsProbability(k=kk, theta=ths, n.I =ns,
+                          a = c(prev.bounds[2,],-20), b=c(prev.bounds[1,],x))
+      sum(gg$upper$prob) - power
+    }
+    .powL <- function(x, prev.bounds, ns, ths){
+      kk  <- NCOL(prev.bounds) + 1
+      gg <- gsDesign::gsProbability(k=kk, theta=ths, n.I =ns,
+                          a = c(prev.bounds[2,],x),
+                          b=c(prev.bounds[1,],20))
+      sum(gg$lower$prob) - power
+    }
+    k <- NCOL(theta)
+    cutoffs <- matrix(NA, nrow=2, ncol=k)
+    cutoffs[1, ] <- (theta[1,] - theta.null)*sqrt(n) - zb  # initial guess
+    cutoffs[2, ] <- (theta[2,] - theta.null)*sqrt(n) + zb  # initial guess
+    if (k >= 2){
+      for (idx in 2:k){
+        resU <- tryCatch(uniroot(f=.powU, interval=c(-20,20),
+                                 prev.bounds=cutoffs[,1:(idx-1),drop=FALSE], ns=n[1:idx],
+                                 ths=theta[1,idx]), error=function(e)e)
+        if ("error" %in% class(resU)) browser()
+        cutoffs[1,idx] <- resU$root
+        resL <- tryCatch(uniroot(f=.powL, interval=c(-20,20),
+                                 prev.bounds=cutoffs[,1:(idx-1),drop=FALSE], ns=n[1:idx],
+                                 ths=theta[2,idx]), error=function(e)e)
+        if ("error" %in% class(resL)) browser()
+        cutoffs[2,idx] <- resL$root
+      }
+    }
+    nominal.level <- pnorm(cutoffs, lower.tail=FALSE)
+  }
+
+  res <- list(nominal.level = nominal.level,
+              theta = theta,
+              n = n,
+              cutoffs = cutoffs,
+              theta.null = theta.null,
+              theta.alt = theta.alt,
+              power = power)
+  res
+}

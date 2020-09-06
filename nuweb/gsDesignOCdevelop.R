@@ -9,7 +9,7 @@ gs <- as.package("../gsDesignOC")
 
 nuweb(gs)
 document(gs)
-run_examples(gs)  # or dev_example("ran.CMData")
+run_examples(gs)
 load_all(gs)
 
 test(gs)

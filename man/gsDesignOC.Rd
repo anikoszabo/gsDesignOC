@@ -81,4 +81,5 @@ Szabo, A, Tarima, S (?) Operating-characteristic guided design of group-sequenti
 \author{
 Aniko Szabo
 }
+\keyword{design}
 \keyword{nonparametric}

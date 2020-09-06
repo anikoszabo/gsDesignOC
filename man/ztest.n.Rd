@@ -26,9 +26,7 @@ and significance level
 
 ztest.n(delta=1, sd=1, sig.level=0.05, power=0.9)
 }
-\references{
-Szabo, A, Tarima, S (?) Operating-characteristic guided design of group-sequential trials.
-}
 \author{
 Aniko Szabo
 }
+\keyword{internal}
