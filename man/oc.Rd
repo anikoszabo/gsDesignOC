@@ -4,13 +4,22 @@
 \alias{oc}
 \title{Operating characteristics of a potential design}
 \usage{
-oc(x)
+oc(x, EN_theta = x$thetaA, mix.w = rep(1, length(EN_theta)))
 }
 \arguments{
 \item{x}{object of class \code{gsDesignOC}}
+
+\item{EN_theta}{numeric vector of parameter values for which expected sample size calculation is performed}
+
+\item{mix.w}{numeric vector of positive weights for each value of \code{EN_theta}. Defaults to equal weights.}
 }
 \value{
-
+a list with the following elements:
+\describe{
+\item{typeI}{type I error, ie the probability of not crossing the efficacy boundary under theta=th0}
+\item{power}{power, ie the probability of crossing the efficacy boundary under theta=thA}
+\item{EN}{expected sample size under the requested alternatives}
+}
 }
 \description{
 The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the

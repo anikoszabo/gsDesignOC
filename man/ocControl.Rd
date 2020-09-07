@@ -2,7 +2,7 @@
 % Please edit documentation in R/gsDesignOC.R
 \name{ocControl}
 \alias{ocControl}
-\title{}
+\title{Control values for gsDesignOC}
 \usage{
 ocControl(optim.penalty = 1000)
 }
@@ -14,9 +14,6 @@ errors versus sample size in optimization routine}
 a list with components for each of the possible arguments
 }
 \description{
-
-}
-\details{
 The values supplied in the function call replace the defaults and a list with all possible
 arguments is returned. The returned list is used as the \code{control} argument to the
 \code{gsDesignOC} function.

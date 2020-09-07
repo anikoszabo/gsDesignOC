@@ -77,6 +77,14 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
                        mix.w = rep(1, length(thA.seq)),
                        control=list()){
   @< Check inputs @>
+
+  # create skeleton gsDesignOC object
+  res <- list(thA=thA, thA.seq=thA.seq,
+              th0=th0, th0.seq=th0.seq,
+              sig.level = sig.level, sig.level_final=sig.level_final,
+              power=power, power.futility = power.futility, futility.type=futility.type)
+  class(res) <- "gsDesignOC"
+
   @< Define optimization function @>
 
   k <- length(thA.seq) + 1
@@ -92,14 +100,9 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   n.I <- cumsum(oo$par)/n
   if (!is.null(sig.level_final)) n.I <- head(n.I, -1)
 
-
-  res <- list(n = n, n.I = n.I, thA=thA, thA.seq=thA.seq,
-              th0=th0, th0.seq=th0.seq, min.under=min.under,
-              sig.level = sig.level, sig.level_final=sig.level_final,
-              power=power, power.futility = power.futility,
-              futility.type = futility.type, mix.w = mix.w)
-  class(res) <- "gsDesignOC"
-  res
+  res$n <- n
+  res$n.I <- n.I
+  return(res)
 }
 
 @}
@@ -116,13 +119,25 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   }
 
   min.under <- match.arg(min.under)
-  if (min.under == "alt.mixture" & length(mix.w) != length(thA.seq))
-    stop("'mix.w' should have the same length as 'thA.seq' when optimizing under the mixture of alternatives")
-  if (min.under == "null.mixture"){
+  if (min.under == "alt"){
+    mix.theta <- thA
+    mix.w <- 1
+  }
+  else if (min.under == "null"){
+    mix.theta <- th0
+    mix.w <- 1
+  }
+  else if (min.under == "alt.mixture"){
+    if (length(mix.w) != length(thA.seq))
+      stop("'mix.w' should have the same length as 'thA.seq' when optimizing under the mixture of alternatives")
+    mix.theta <- thA.seq
+  }
+  else if (min.under == "null.mixture"){
     if (is.null(th0.seq))
       stop("'th0.seq' has to be defined when optimizing under the mixture of nulls")
     if (length(mix.w) != length(th0.seq))
       stop("'mix.w' should have the same length as 'th0.seq' when optimizing under the mixture of nulls")
+    mix.theta <- th0.seq
   }
 
   if (!is.null(sig.level_final) && ((sig.level_final <= 0 || sig.level_final > sig.level)))
@@ -144,14 +159,14 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
     n.I <- cumsum(n.vec/n)
     if (!is.null(sig.level_final)) n.I <- head(n.I, -1)
 
-    dp <- design.properties(n=n, n.I = n.I, thA.seq = thA.seq, th0.seq = th0.seq,
-                                th0=th0, thA=thA, sig.level_final = sig.level_final,
-                                power=power)
+    res$n <- n
+    res$n.I <- n.I
+    res$bounds <- get.bounds(res)
+    dp <- oc(res, EN_theta=mix.theta, mix.w=mix.w)
     Q <-
-      controlvals$optim.penalty * abs(dp$typeI - sig.level)/(sig.level*(1-sig.level)) +
-      controlvals$optim.penalty * abs(dp$pow - power)/(power*(1-power)) +
-      dp$enA
-    #n
+      controlvals$optim.penalty * abs(dp$typeI - sig.level)/sqrt(sig.level*(1-sig.level)) +
+      controlvals$optim.penalty * abs(dp$power - power)/sqrt(power*(1-power)) +
+      dp$EN
     Q
   }
 @}
@@ -169,32 +184,51 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 #'
 #'@@export
 #'@@param x object of class \code{gsDesignOC}
-#'@@return
+#'@@param EN_theta numeric vector of parameter values for which expected sample size calculation is performed
+#'@@param mix.w numeric vector of positive weights for each value of \code{EN_theta}. Defaults to equal weights.
+#'@@return a list with the following elements:
+#'\describe{
+#'\item{typeI}{type I error, ie the probability of not crossing the efficacy boundary under theta=th0}
+#'\item{power}{power, ie the probability of crossing the efficacy boundary under theta=thA}
+#'\item{EN}{expected sample size under the requested alternatives}
+#'}
 #'@@author Aniko Szabo
 #'@@keywords design
 #'@@examples
 #'
 #'
 
-oc <- function(x){}
+oc <- function(x, EN_theta=x$thetaA,  mix.w = rep(1, length(EN_theta))){
 
-design.properties <- function(n, n.I, thA.seq, th0.seq, th0, thA,
-                               sig.level_final, power){}
-#'design.properties <- function(n, n.I, thA.seq, th0.seq, th0=.th0, thA=.thA,
-#'                               sig.level_final=.alpha*0.8, power=1-.beta){
-#'
-#'  res0 <- overall.crossprob(thA.seq, th0.seq, n.I, n, theta=th0,
-#'                                 sig.level_final=sig.level_final,
-#'                             power=power)
-#'  typeI <- res0$cross.up
-#'  resA <- overall.crossprob(thA.seq, th0.seq, n.I, n, theta=thA,
-#'                                 sig.level_final=sig.level_final,
-#'                             power=power)
-#'  pow <- resA$cross.up
-#'  enA <- resA$en
-#'  list(typeI=typeI, power=pow, enA = enA, bounds=res0$bounds)
-#'}
-@}
+  if (length(mix.w) != length(EN_theta))
+    stop("`EN_theta` and `mix.w` should have the same length")
+  if (!all(mix.w > 0))
+    stop("`mix.w` should have only positive elements")
+
+  # under H0
+  res0 <- overall.crossprob(x, theta=x$theta0)
+  # under Ha
+  resA <- overall.crossprob(x, theta=x$thetaA)
+
+  # under EN-alternatives
+  en_vec <- numeric(length(EN_theta))
+  for (i in seq_along(EN_theta)){
+    th <- EN_theta[i]
+    # check if we already calculated the EN at this value
+    if (abs(th - x$theta0) < .Machine$double.eps){
+      en_vec[i] <- res0$EN
+    } else if (abs(th - x$thetaA) < .Machine$double.eps) {
+      en_vec[i] <- resA$EN
+    } else {
+      en_vec[i] <- overall.crossprob(x, theta=th)
+    }
+  }
+  en <- en_vec %*% mix.w / sum(mix.w)
+  list(typeI = res0$cross.up,
+       power = resA$cross.up,
+       EN = en)
+}
+@| oc@}
 
 @o ../R/gsDesignOC.R
 @{
@@ -267,8 +301,7 @@ convert.bounds <- function(nominal.level=NULL, theta=NULL, n, power, theta.null)
   if (is.null(theta)){
     .pow <- function(th, bounds, ns){
       kk  <- length(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
-                          a = rep(-20, kk), b=bounds)
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns, a = rep(-20, kk), b=bounds)
       sum(gg$upper$prob) - power
     }
     k <- length(nominal.level)
@@ -349,14 +382,12 @@ convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
   if (is.null(theta)){
     .powU <- function(th, bounds, ns){
       kk  <- NCOL(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
-                          a =bounds[2,], b=bounds[1,])
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,  a =bounds[2,], b=bounds[1,])
       sum(gg$upper$prob) - power
     }
     .powL <- function(th, bounds, ns){
       kk  <- NCOL(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,
-                          a =bounds[2,], b=bounds[1,])
+      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,a =bounds[2,], b=bounds[1,])
       sum(gg$lower$prob) - power
     }
     k <- NCOL(nominal.level)
@@ -421,6 +452,63 @@ convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
 }
 @}
 
+@o ../R/gsDesignOC.R
+@{
+#'Overall probability of crossing the efficacy and futility boundaries
+#'
+#'The \code{overall.crossprob} calculates the probability of crossing the efficacy and, optionally,
+#' the futility bound, given a series of alternative (and optionally, null) hypotheses tested at
+#' each stage.
+
+#'@@export
+#'@@inheritParams gsDesignOC
+#'@@param theta numeric; value of the parameter under which the crossing probabilities are computed
+#'@@param n.I numeric; cumulative proportio
+#'@@param
+#'@@param
+#'@@param
+#'@@param
+#'@@param
+#'@@param
+#'@@return a list with all the inputs, with the NULL component filled in
+#'@@author Aniko Szabo
+#'@@keywords internal
+#'@@examples
+#'
+#'(c1 <- convert.bounds(nominal.level = c(0.01, 0.02),
+#'                       n = c(30, 50), power=0.8, theta.null=0))
+#' convert.bounds(theta = c1$theta, n = c(30, 50), power=0.8, theta.null=0)$nominal.level
+overall.crossprob <- function(theta, n.I, n, thA.seq, power, th0.seq=NULL, power.futility=NULL,
+                              sig.level_final=NULL){
+  k <- length(thA.seq)
+  bb <- convert2.cum(thetas=rbind(thA.seq, th0.seq), n=n*n.I, power=power)$cutoffs
+  if (!is.null(sig.level_final)){
+    bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
+    bb <- cbind(bb, rep(bb.last,2))
+    n.I <- c(n.I, 1)
+    k <- k + 1
+  }
+  p <- gsProbability(k=k, theta=theta, n.I=n.I*n,
+                     a=bb[2,], b=bb[1,])
+  list(cross.up=colSums(p$upper$prob), cross.down=colSums(p$lower$prob),
+       en=p$en, bounds=bb)
+}
+overall.crossprob.alt <- function(th.seq, n.I, n, theta=0,
+                                   sig.level_final=.alpha*0.8, power=1-.beta){
+  k <- length(th.seq)
+  bb <- convert.alt.cum(theta=th.seq, n=n*n.I, power=power)$cutoff
+  if (!is.null(sig.level_final)){
+    bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
+    bb <- c(bb, bb.last)
+    n.I <- c(n.I, 1)
+    k <- k + 1
+  }
+  p <- gsProbability(k=k, theta=theta, n.I=n.I*n,
+                     a=rep(-20,k), b=bb)
+  list(cross.p=colSums(p$upper$prob), en=p$en, upper=bb)
+}
+
+@}
 \section{Utility help-functions}
 
 
