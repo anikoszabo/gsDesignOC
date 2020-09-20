@@ -27,8 +27,9 @@
 #'@param power numeric; the desired study power. The default is 0.9. This value will also be
 #'used to set the probability of stopping for efficacy at stage k under \code{thA.seq}.
 #'@param power.futility numeric; the probability of stopping for futility at stage k under \code{th0.seq}
-#'@param futility.type character string, one of \code{c("non-binding","binding")} or their
-#'unique abbreviations. Specifies whether the effect of the futility boundary should be included
+#'@param futility.type character string, one of \code{c("none", "non-binding","binding")} or their
+#'unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
+#'is used, then whether the effect of the futility boundary should be included
 #'in the efficacy power/type I error calculations ("binding"), or not ("non-binding").
 #'@param mix.w numeric vector of length equal to that of \code{thA.seq}. The weights of the
 #'elements of \code{thA.seq} or \code{th0.seq} in the optimality criterion when using \code{min.under="alt.mixture"}
@@ -50,7 +51,7 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
                        min.under=c("alt","null","alt.mixture", "null.mixture"),
                        sig.level = 0.025, sig.level_final=NULL,
                        power=0.9, power.futility = power,
-                       futility.type=c("non-binding","binding"),
+                       futility.type=c("none","non-binding","binding"),
                        mix.w = rep(1, length(thA.seq)),
                        control=list()){
   
@@ -90,6 +91,9 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
       stop("'sig.level_final' should be between 0 and 'sig.level'")
 
     futility.type <- match.arg(futility.type)
+    if (futility.type != "none"){
+      if (is.na(th0.seq)) stop("`th0.seq` should be specified if a futility bound is requested")
+    }
 
     controlvals <- ocControl()
     if (!missing(control))
@@ -109,12 +113,12 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
     .cp <- function(n.vec){
 
       n <- sum(n.vec)
-      n.I <- cumsum(n.vec/n)
-      if (!is.null(sig.level_final)) n.I <- head(n.I, -1)
+      timing <- cumsum(n.vec/n)
+      if (!is.null(sig.level_final)) timing <- head(timing, -1)
 
       res$n <- n
-      res$n.I <- n.I
-      res$bounds <- get.bounds(res)
+      res$timing <- timing
+      res$bounds <- calc.bounds(res)
       dp <- oc(res, EN_theta=mix.theta, mix.w=mix.w)
       Q <-
         controlvals$optim.penalty * abs(dp$typeI - sig.level)/sqrt(sig.level*(1-sig.level)) +
@@ -134,11 +138,11 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   oo <- optim(diff(c(0,n.guess)), fn=.cp)
 
   n <- sum(oo$par)
-  n.I <- cumsum(oo$par)/n
-  if (!is.null(sig.level_final)) n.I <- head(n.I, -1)
+  timing <- cumsum(oo$par)/n
+  if (!is.null(sig.level_final)) timing <- head(timing, -1)
 
   res$n <- n
-  res$n.I <- n.I
+  res$timing <- timing
   return(res)
 }
 
@@ -215,6 +219,14 @@ ocControl <- function(optim.penalty = 1000){
   list(optim.penalty = optim.penalty)
 }
 
+#'Calculate efficacy/futility boundary values given the timing of analyses and desired operating characteristics
+
+#'@export
+#'@param x an object of class \code{gsDesignOC}
+
+calc.bounds <- function(x){}
+
+
 #'Conversion between nominal significance levels and alternative hypothesis values
 #'
 #' The \code{convert.bounds} function performs conversion between nominal significance levels
@@ -260,7 +272,7 @@ convert.bounds <- function(nominal.level=NULL, theta=NULL, n, power, theta.null)
   if (is.null(theta)){
     .pow <- function(th, bounds, ns){
       kk  <- length(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns, a = rep(-20, kk), b=bounds)
+      gg <- gsDesign::gsProbability(k=kk, theta=th, times =ns, a = rep(-20, kk), b=bounds)
       sum(gg$upper$prob) - power
     }
     k <- length(nominal.level)
@@ -419,7 +431,7 @@ convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
 #'@export
 #'@inheritParams gsDesignOC
 #'@param theta numeric; value of the parameter under which the crossing probabilities are computed
-#'@param n.I numeric; cumulative proportio
+#'@param timing numeric; cumulative proportio
 #'@param
 #'@param
 #'@param
@@ -434,32 +446,32 @@ convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
 #'(c1 <- convert.bounds(nominal.level = c(0.01, 0.02),
 #'                       n = c(30, 50), power=0.8, theta.null=0))
 #' convert.bounds(theta = c1$theta, n = c(30, 50), power=0.8, theta.null=0)$nominal.level
-overall.crossprob <- function(theta, n.I, n, thA.seq, power, th0.seq=NULL, power.futility=NULL,
+overall.crossprob <- function(theta, timing, n, thA.seq, power, th0.seq=NULL, power.futility=NULL,
                               sig.level_final=NULL){
   k <- length(thA.seq)
-  bb <- convert2.cum(thetas=rbind(thA.seq, th0.seq), n=n*n.I, power=power)$cutoffs
+  bb <- convert2.cum(thetas=rbind(thA.seq, th0.seq), n=n*timing, power=power)$cutoffs
   if (!is.null(sig.level_final)){
     bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
     bb <- cbind(bb, rep(bb.last,2))
-    n.I <- c(n.I, 1)
+    timing <- c(timing, 1)
     k <- k + 1
   }
-  p <- gsProbability(k=k, theta=theta, n.I=n.I*n,
+  p <- gsProbability(k=k, theta=theta, n.I=timing*n,
                      a=bb[2,], b=bb[1,])
   list(cross.up=colSums(p$upper$prob), cross.down=colSums(p$lower$prob),
        en=p$en, bounds=bb)
 }
-overall.crossprob.alt <- function(th.seq, n.I, n, theta=0,
+overall.crossprob.alt <- function(th.seq, timing, n, theta=0,
                                    sig.level_final=.alpha*0.8, power=1-.beta){
   k <- length(th.seq)
-  bb <- convert.alt.cum(theta=th.seq, n=n*n.I, power=power)$cutoff
+  bb <- convert.alt.cum(theta=th.seq, n=n*timing, power=power)$cutoff
   if (!is.null(sig.level_final)){
     bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
     bb <- c(bb, bb.last)
-    n.I <- c(n.I, 1)
+    timing <- c(timing, 1)
     k <- k + 1
   }
-  p <- gsProbability(k=k, theta=theta, n.I=n.I*n,
+  p <- gsProbability(k=k, theta=theta, n.I=timing*n,
                      a=rep(-20,k), b=bb)
   list(cross.p=colSums(p$upper$prob), en=p$en, upper=bb)
 }

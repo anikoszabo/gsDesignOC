@@ -8,7 +8,7 @@ gs <- as.package("../gsDesignOC")
 #use_testthat()
 
 nuweb(gs)
-shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer --clean gsDesignOC.tex")
+shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer gsDesignOC.tex")
 
 document(gs)
 run_examples(gs)

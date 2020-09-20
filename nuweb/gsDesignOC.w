@@ -4,6 +4,11 @@
 \renewcommand{\NWtarget}[2]{\hypertarget{#1}{#2}}
 \renewcommand{\NWlink}[2]{\hyperlink{#1}{#2}}
 \providecommand{\ds}{\displaystyle}
+\newcommand{\I}{\mathcal{I}}
+\newcommand{\R}{\mathcal{R}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\C}{\mathcal{C}}
+\newtheorem{theorem}{Theorem}
 
 
 \title{Operating-characteristic guided design of group-sequential trials}
@@ -21,58 +26,115 @@ We show that under some monotonicity restrictions, such designs exist for any ch
 
 \section{Setup and notations}
 
-All the calculations are set up assuming a one-sample setting with a normally distributed outcome with a known variance, but many common settings can be reduced to / approximated by this special case.
+All the calculations are set up assuming a setting with a normally distributed outcome with a known variance, but many common settings can be reduced to / approximated by this special case.
 
-Let $X_i \sim N(\theta, 1)$ be a sequence of independent identically distributed measurements. We are designing a study to test the following hypotheses:
+Let $X_i \sim N(\theta, \sigma^2)$ be a sequence of independent identically distributed measurements. We are designing a study to test the following hypotheses:
 \begin{equation}
 H_0: \theta = \theta_0 \quad\text{versus}\quad H_A: \theta\geq\theta_0
 \end{equation}
 with type I error $\alpha$ and power $\pi$ at a pre-specified value $\theta=\theta_A$.
 
-The test statistic for $H_0$ based on $n$ values is $Z(n) = (\bar{X}_n - \theta_0)\sqrt{n}$, and in general
+The test statistic for $H_0$ based on $n$ values is $Z(n) = (\bar{X}_n - \theta_0)\sqrt{n}\big/\sigma = \sqrt{\I_n}(\bar{X}_n - \theta_0)$, where $\I_n = [\sigma^2/n]^{-1}$ is the Fisher information after $n$ observations. Then for any value of $\theta$
 \begin{equation}
-Z(n) \sim N\big(\sqrt{n}(\theta-\theta_0), 1\big).
+Z(n) \sim N\big(\sqrt{\I_n}(\theta-\theta_0), 1\big),
 \end{equation}
+and for $n_1 \leq n_2$
+\begin{equation}
+Cov(Z_{n_1}, Z_{n_2}) = \sqrt{\I_{n_1} / \I_{n_2}}.
+\end{equation}
+This information-based formulation holds (approximately) for a variety of potential designs and outcomes, including two-arm randomized and cross-over studies with normal or binary outcomes.
+
 
 The study will use a group-sequential design with $K$ analyses, conducted at relative times $t_1,\ldots,t_K=1$. The $k^\text{th}$ analysis will be conducted after $n_k = N \times t_k$ observations have been obtained, where $N$ is the maximum sample size of the study. Based on the test statistic $Z_k = Z(n_k)$ at  analysis $k=1,\ldots,K-1$, the trial can be stopped early for efficacy (reject $H_0$) if $Z_k \geq u_k$, stopped early for futility (fail to reject $H_0$) if $Z_k \leq l_k$, or continued to the next stage. At the final, $K^\text{th}$ analysis,  $H_0$ would either be rejected if $Z_K \geq u_K=l_K$, or we would fail to reject $H_0$ otherwise. As a special case, setting $l_k=-\infty$ will result in a study when interim stopping for futility is not considered.
 
-The decision boundaries $u_k, l_k, k=1,\ldots,K$, and the maximum sample size $N$ have to be selected so that the overall type I error and power of the study are maintained at their design values, but there are many valid choices. In this \emph{operating characteristic driven} approach we propose to select the boundaries based on the cumulative probabilities of stopping for efficacy or futility at each stage.
+The decision boundaries $u_k, l_k, k=1,\ldots,K$, and the maximum information target ($\sim$ sample  size) $\I_\text{max}$ have to be selected so that the overall type I error and power of the study are maintained at their design values, but there are many valid choices. In this \emph{operating characteristic driven} approach we propose to select the boundaries based on the cumulative probabilities of stopping for efficacy or futility at each stage.
 
-\begin{table}\caption{Target operating characteristics}
+\begin{table}\caption{Notations}\label{T:notation}
+\begin{center}
+\begin{tabular}{p{4cm}|c|c}
+Characteristic & Notation & Event \\ \hline
+\multicolumn{3}{l}{\textbf{No or non-binding futility boundary}}\\
+Rejection \emph{at} stage $k$ & $\R_k$ &
+  $\{Z_1<u_1,\ldots,Z_{k-1}<u_{k-1}, Z_k \geq u_k \}$   \\
+Continuation \emph{at} stage $k$ & $\C_k$ &
+  $\{Z_1<u_1,\ldots,Z_{i-1}<u_{k-1}, Z_k < u_k \}$  \\ \hline
+\multicolumn{3}{l}{\textbf{Non-binding futility boundary}}\\
+Acceptance \emph{at} stage $k$ & $\A_k$ &
+  $\{Z_1<u_1,\ldots,Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\ \hline
+\multicolumn{3}{l}{\textbf{Binding futility boundary}}\\
+Rejection \emph{at} stage $k$ & $\R^*_k$ &
+  $\{l_1 < Z_1<u_1,\ldots,l_{k-1} <Z_{k-1}<u_{k-1}, Z_k \geq u_k \}$   \\
+Continuation \emph{at} stage $k$ & $\C^*_k$ &
+  $\{l_1 < Z_1<u_1,\ldots,l_{k-1} <Z_{k-1}<u_{k-1}, l_k < Z_k < u_k \}$  \\
+Acceptance \emph{at} stage $k$ & $\A^*_k$ &
+  $\{l_1 < Z_1<u_1,\ldots,l_{k-1} < Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{table}\caption{Target operating characteristics}\label{T:OCdef}
 \begin{center}
 \begin{tabular}{p{4cm}|c|c|c}
-Characteristic & Event & $\theta$ & \parbox{1cm}{Probability\\target}\\ \hline
+Characteristic & Event & $\theta$ & Probability target\\ \hline
 \multicolumn{4}{l}{\textbf{No or non-binding futility boundary}}\\
 Overall type I error &
-  $\ds\bigcup_{i=1}^K\{Z_1<u_1,\ldots,Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_0$ &
+  $\ds\bigcup_{i=1}^K \R_i$ & $\theta_0$ &
   $\leq\alpha$\\
 Overall power &
-  $\ds\bigcup_{i=1}^K\{Z_1<u_1,\ldots,Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_A$ &
+  $\ds\bigcup_{i=1}^K\ \R_i$ & $\theta_A$ &
   $\geq\pi$\\
 Stop by stage $k$ for efficacy  &
-  $\ds\bigcup_{i=1}^k\{Z_1<u_1,\ldots,Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_{Ak}$ &
-  $\geq\pi$\\ \hline
+  $\ds\bigcup_{i=1}^k \R_i$ & $\theta_{Ak}$ &
+  $\geq\pi_E$\\ \hline
 \multicolumn{4}{l}{\textbf{Non-binding futility boundary}}\\
 Stop by stage $k$ for futility  &
-  $\ds\bigcup_{i=1}^k\{l_1<Z_1<u_1,\ldots,l_{i-1}<Z_{i-1}<u_{i-1}, Z_i \leq l_i \}$ & $\theta_{0k}$ &
+  $\ds\bigcup_{i=1}^k \A_i$ & $\theta_{0k}$ &
   $\geq\pi_F$\\ \hline
 \multicolumn{4}{l}{\textbf{Binding futility boundary}}\\
 Overall type I error &
-  $\ds\bigcup_{i=1}^K\{l_1<Z_1<u_1,\ldots,l_{i-1}<Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_0$ &
+  $\ds\bigcup_{i=1}^K \R^*_i$ & $\theta_0$ &
   $\leq\alpha$\\
 Overall power &
-  $\ds\bigcup_{i=1}^K\{l_1<Z_1<u_1,\ldots,l_{i-1}<Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_A$ &
+  $\ds\bigcup_{i=1}^K \R^*_i$ & $\theta_A$ &
   $\geq\pi$\\
 Stop by stage $k$ for efficacy  &
-  $\ds\bigcup_{i=1}^k\{l_1<Z_1<u_1,\ldots,l_{i-1}<Z_{i-1}<u_{i-1}, Z_i \geq u_i \}$ & $\theta_{Ak}$ &
-  $\geq\pi$\\
+  $\ds\bigcup_{i=1}^k \R^*_i$ & $\theta_{Ak}$ &
+  $\geq\pi_E$\\
 Stop by stage $k$ for futility  &
-  $\ds\bigcup_{i=1}^k\{l_1<Z_1<u_1,\ldots,l_{i-1}<Z_{i-1}<u_{i-1}, Z_i \leq l_i \}$ & $\theta_{0k}$ &
+  $\ds\bigcup_{i=1}^k \A^*_i$ & $\theta_{0k}$ &
   $\geq\pi_F$\\
 \end{tabular}
 \end{center}
 \end{table}
 
+\begin{theorem} A design satisfying the operating characteristic requirements of Table~\ref{T:OCdef} exists, if the following conditions are satisfied:
+\begin{itemize}
+\item[C1.] $\pi_E \leq \pi$
+\item[C2.] $\theta_{A1} \geq \theta_{A2} \geq \cdots \geq \theta_{A,K-1} \geq \theta_A$
+\end{itemize}
+Additionally, if a futility boundary is needed:
+\begin{itemize}
+\item[C3.]  $\pi_F \leq 1-\alpha$
+\item[C4.] $\theta_{01} \leq \theta_{02} \leq \cdots \leq \theta_{0,K-1} \leq \theta_0$
+\end{itemize}
+\end{theorem}
+\begin{proof} We will consier the cases of no, non-binding, and binding futility boundaries separately.
+
+\textbf{I. no futility boundary} We will use proof by induction over the number of stages $K$. When $K=1$, only the overall type I error and power need to be considered, and the well-known single-stage design achieving the overall information $$\I_\text{fix} = \frac{(z_\alpha + z_{1-\beta})^2}{(\theta_A - \theta_0)^2}$$ will satisfy the requirements with $u_K = z_\alpha$.
+
+Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$, overall power $\pi_E$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
+
+Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1<u_1,\ldots, Z_{K-1} \geq u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is continuous in $u$, by the intermediate value theorem for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
+
+Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1\geq u_1, \ldots, Z_{K-1}\geq u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$. On the other hand, $b(\infty) = 1$, and $b$ is continuous in $\I_N$. By the intermediate value theorem, we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
+
+\textbf{II. Non-binding futility boundary}
+The overall power, type I error, and stage-specific efficacy power requirements do not depend on a non-binding futility boundary, so we can start with a design constructed without a futility boundary. We then need to calculate the lower bounds $l_k$ to satisfy the futility stopping probabilities. For stage 1, we need $Pr(Z_1 < l_1 | \theta_{01}) = \pi_F$, where $Z_1 \sim N(\sqrt{I_1}(\theta_{01}-\theta_0), 1)$. Thus $l_1 = z_{1-\pi_F} + \sqrt{I}(\theta_{01}-\theta_0)$ satisfies the target power. Given conditions C3-C4, $l_1 \leq z_\alpha$, while $u_1 \geq z_\alpha$, so $l_1 \leq u_1$.
+
+At stage $k$, consider the function $c(l_k) = Pr$
+
+\end{proof}
+\clearpage
 
 \section{Main function: calculate design}
 
@@ -316,7 +378,22 @@ ocControl <- function(optim.penalty = 1000){
 
 \section{Boundary achieving the desired operating characteristics}
 
-The bounds
+Given the timing of the interim analyses and using the probability targets defined in Table~\ref{T:OCdef}, we can derive the boundaries $u_k$ and $l_k$.
+
+\subsection{No or non-binding futility boundary}
+We start by calculating the upper boundary only -- this is valid if no futility boundary is needed or if it is non-binding.
+
+The requirements can be rewritten as the following system of equations:
+\begin{align*}
+Pr(Z_1 \geq u_1 \mid \theta_{A1}) = & \pi \tag{Stage 1} \\
+Pr(Z_1 < u_1, Z_2 \geq u_2 \mid \theta_{A2}) = & \pi  \tag{Stage 2}\\
+\vdots\\
+Pr(Z_1 < u_1, \ldots, Z_{K-2} < u_{K-2}, Z_{K-1} \geq u_{K-1}  \mid \theta_{A,K-1}) = & \pi \tag{Stage K-1}\\
+Pr(Z_1 < u_1, \ldots, Z_{K-1} < u_{K-1}, Z_K \geq u_K  \mid \theta_{A}) \geq & \pi \tag{Overall power}\\
+Pr(\bigcup_{k=1}^K \{Z_k > u_k\}  \mid \theta_{0}) \leq & \alpha \tag{Overall type I error}
+\end{align*}
+
+The values of $u_1,\ldots,u_{K-1}$ can be obtained stepwise working through the first $K-1$ equations. However $u_K$ needs to satisfy both of the last two equations simultaneously. Since the power of the study can be increased by increasing the sample size, we can select $u_K$ to satisfy the (Overall type I error) condition with equality, then increase the sample size until the (Overall power condition) is also satisfied. The earlier boundary values also depend on the total sample size, so they would need to be recalculated during the search.
 
 
 @O ../R/gsDesignOC.R
