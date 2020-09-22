@@ -9,6 +9,7 @@
 \newcommand{\A}{\mathcal{A}}
 \newcommand{\C}{\mathcal{C}}
 \newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
 
 
 \title{Operating-characteristic guided design of group-sequential trials}
@@ -60,13 +61,13 @@ Continuation \emph{at} stage $k$ & $\C_k$ &
   $\{Z_1<u_1,\ldots,Z_{i-1}<u_{k-1}, Z_k < u_k \}$  \\ \hline
 \multicolumn{3}{l}{\textbf{Non-binding futility boundary}}\\
 Acceptance \emph{at} stage $k$ & $\A_k$ &
-  $\{Z_1<u_1,\ldots,Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\ \hline
+  $\{l_1 < Z_1<u_1,\ldots,l_{k-1} < Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\ \hline
 \multicolumn{3}{l}{\textbf{Binding futility boundary}}\\
 Rejection \emph{at} stage $k$ & $\R^*_k$ &
   $\{l_1 < Z_1<u_1,\ldots,l_{k-1} <Z_{k-1}<u_{k-1}, Z_k \geq u_k \}$   \\
 Continuation \emph{at} stage $k$ & $\C^*_k$ &
   $\{l_1 < Z_1<u_1,\ldots,l_{k-1} <Z_{k-1}<u_{k-1}, l_k < Z_k < u_k \}$  \\
-Acceptance \emph{at} stage $k$ & $\A^*_k$ &
+Acceptance \emph{at} stage $k$ & $\A_k$ &
   $\{l_1 < Z_1<u_1,\ldots,l_{k-1} < Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\
 \end{tabular}
 \end{center}
@@ -101,13 +102,13 @@ Stop by stage $k$ for efficacy  &
   $\ds\bigcup_{i=1}^k \R^*_i$ & $\theta_{Ak}$ &
   $\geq\pi_E$\\
 Stop by stage $k$ for futility  &
-  $\ds\bigcup_{i=1}^k \A^*_i$ & $\theta_{0k}$ &
+  $\ds\bigcup_{i=1}^k \A_i$ & $\theta_{0k}$ &
   $\geq\pi_F$\\
 \end{tabular}
 \end{center}
 \end{table}
 
-\begin{theorem} A design satisfying the operating characteristic requirements of Table~\ref{T:OCdef} exists, if the following conditions are satisfied:
+\begin{theorem}\label{Th:exist} A design satisfying the operating characteristic requirements of Table~\ref{T:OCdef} exists, if the following conditions are satisfied:
 \begin{itemize}
 \item[C1.] $\pi_E \leq \pi$
 \item[C2.] $\theta_{A1} \geq \theta_{A2} \geq \cdots \geq \theta_{A,K-1} \geq \theta_A$
@@ -124,16 +125,25 @@ Additionally, if a futility boundary is needed:
 
 Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$, overall power $\pi_E$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
 
-Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1<u_1,\ldots, Z_{K-1} \geq u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is continuous in $u$, by the intermediate value theorem for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
+Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1<u_1,\ldots, Z_{K-1} \geq u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is monotone in $u$, for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
 
-Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1\geq u_1, \ldots, Z_{K-1}\geq u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$. On the other hand, $b(\infty) = 1$, and $b$ is continuous in $\I_N$. By the intermediate value theorem, we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
+Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1\geq u_1, \ldots, Z_{K-1}\geq u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$. On the other hand, $b(\infty) = 1$, and $b$ is monotone in $\I_N$. Thus we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
 
 \textbf{II. Non-binding futility boundary}
 The overall power, type I error, and stage-specific efficacy power requirements do not depend on a non-binding futility boundary, so we can start with a design constructed without a futility boundary. We then need to calculate the lower bounds $l_k$ to satisfy the futility stopping probabilities. For stage 1, we need $Pr(Z_1 < l_1 | \theta_{01}) = \pi_F$, where $Z_1 \sim N(\sqrt{I_1}(\theta_{01}-\theta_0), 1)$. Thus $l_1 = z_{1-\pi_F} + \sqrt{I}(\theta_{01}-\theta_0)$ satisfies the target power. Given conditions C3-C4, $l_1 \leq z_\alpha$, while $u_1 \geq z_\alpha$, so $l_1 \leq u_1$.
 
-At stage $k$, consider the function $c(l_k) = Pr$
+At stage $k$, consider the function $c(l) = Pr(l_1 < Z_1< u_1, \ldots, l_{k-1} < Z_{k-1}< u_{k-1}, Z_k < l \mid \theta_{0k}$. Since $\theta_{0k} \leq \theta_0$, $c(z_\alpha) \geq 1-\alpha \geq \pi_F$, while $c(-\infty) = 0$, so a value $l_k$ can be selected for which $c(l_k) = \pi_F$.
+
+\textbf{III. Binding futility boundary}
+The construction follows the induction-based approach of part I. During the inductive step in addition to $I_K$ and $u_K$, we need to find a value for $l_{K-1}$ that will satisfy the futility boundary restriction. This can be done as shown in part II before proceeding with the selection of the parameters of the last stage. For that step, the definitions of $a(.)$ and $b(.)$ have to be slightly adjusted to include the condition of not having exceeded the lower boundary in the previous steps.
 
 \end{proof}
+
+In the proof of the theorem we have obtained the following uniqueness result:
+
+\begin{corollary}\label{Th:construct} Under the assumptions of Theorem~\ref{Th:exists},  an alpha-spending sequence $\Delta\alpha_k > 0$, $k=1,\ldots,K$ such that $\sum_{k=1}^K\Delta\alpha_k = \alpha$ uniquely determines a design with the required operating characteristics.
+\end{corollary}
+
 \clearpage
 
 \section{Main function: calculate design}
