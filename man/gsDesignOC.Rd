@@ -9,13 +9,13 @@ gsDesignOC(
   thA.seq,
   th0 = 0,
   th0.seq = NULL,
-  min.under = c("alt", "null", "alt.mixture", "null.mixture"),
   sig.level = 0.025,
-  sig.level_final = NULL,
   power = 0.9,
+  power.efficacy = power,
   power.futility = power,
-  futility.type = c("non-binding", "binding"),
-  mix.w = rep(1, length(thA.seq)),
+  futility.type = c("none", "non-binding", "binding"),
+  mix.theta = thA,
+  mix.w = rep(1, length(mix.theta)),
   control = list()
 )
 }
@@ -23,7 +23,7 @@ gsDesignOC(
 \item{thA}{numeric; effect size under the alternative hypothesis}
 
 \item{thA.seq}{monotone numeric vector of values getting closer to thA from outside the
-th0-thA range (ie, if thA > th0, they should form a decreasing sequence with all values > thA). #'For the k-th value the study will stop for efficacy at or before the k-th stage with probability \code{power}.}
+th0-thA range (ie, if thA > th0, they should form a decreasing sequence with all values > thA). #'For the k-th value the study will stop for efficacy at or before the k-th stage with probability \code{power.efficacy}.}
 
 \item{th0}{numeric; effect size under the null hypothesis}
 
@@ -33,31 +33,24 @@ The study will stop for futility at or before the k-th stage with probability \c
 Its length should be equal to that of \code{thA.seq}. The default value of \code{NULL} implies no
 futility monitoring.}
 
-\item{min.under}{character string, one of \code{c("alt","null","alt.mixture", "null.mixture")}
-or their unique abbreviations. Specifies the hypothesis under which the study sample size is
-minimized. \code{min.under="alt"} minimizes under the alternative hypothesis (theta=\code{thA}),
-\code{min.under="null"} under the null hypothesis (theta=\code{th0}), while the \code{"mixture"}
-option minimize the weighted average of sample sizes under theta=\code{thA.seq} or theta=\code{th0.seq}.
-The weights are specified in \code{mix.w}.}
-
 \item{sig.level}{numeric; the one-sided significance level. The default is 0.025.}
 
-\item{sig.level_final}{numeric; the desired nominal significance level for testing the null
-hypothesis at the final stage. Should be between 0 and \code{sig.level}. If NULL, the value
-will be found using the optimization criterion.}
+\item{power}{numeric; the desired study power. The default is 0.9.}
 
-\item{power}{numeric; the desired study power. The default is 0.9. This value will also be
-used to set the probability of stopping for efficacy at stage k under \code{thA.seq}.}
+\item{power.efficacy}{numeric; the probability of stopping for efficacy at stage k under \code{thA.seq}}
 
 \item{power.futility}{numeric; the probability of stopping for futility at stage k under \code{th0.seq}}
 
-\item{futility.type}{character string, one of \code{c("non-binding","binding")} or their
-unique abbreviations. Specifies whether the effect of the futility boundary should be included
+\item{futility.type}{character string, one of \code{c("none", "non-binding","binding")} or their
+unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
+is used, then whether the effect of the futility boundary should be included
 in the efficacy power/type I error calculations ("binding"), or not ("non-binding").}
 
-\item{mix.w}{numeric vector of length equal to that of \code{thA.seq}. The weights of the
-elements of \code{thA.seq} or \code{th0.seq} in the optimality criterion when using \code{min.under="alt.mixture"}
-or \code{min.under="null.mixture"}, respectively. It will be normalized to a sum of 1.
+\item{mix.theta}{numeric vector; specifies the set of alternatives under which the design is optimized.
+Defaults to \code{thA}.}
+
+\item{mix.w}{numeric vector of length equal to that of \code{mix.theta}. The weights of the
+elements of \code{mix.theta} in the optimality criterion. It will be normalized to a sum of 1.
 Defaults to equal weights.}
 
 \item{control}{list of parameters controlling the estimation altorithm to replace the default
@@ -72,7 +65,7 @@ for a group-sequential trial
 }
 \examples{
 
-gsDesignOC(0.3, thA.seq = c(1, 0.5), min.under="alt")
+gsDesignOC(0.3, thA.seq = c(1, 0.5))
 
 }
 \references{

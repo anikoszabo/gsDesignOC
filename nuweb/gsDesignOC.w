@@ -125,14 +125,14 @@ Additionally, if a futility boundary is needed:
 
 Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$, overall power $\pi_E$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
 
-Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1<u_1,\ldots, Z_{K-1} \geq u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is monotone in $u$, for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
+Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1 < u_1,\ldots, Z_{K-1} < u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is monotone in $u$, for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
 
-Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1\geq u_1, \ldots, Z_{K-1}\geq u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$. On the other hand, $b(\infty) = 1$, and $b$ is monotone in $\I_N$. Thus we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
+Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1 < u_1, \ldots, Z_{K-1}< u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$. On the other hand, $b(\infty) = 1$, and $b$ is monotone in $\I_N$. Thus we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
 
 \textbf{II. Non-binding futility boundary}
 The overall power, type I error, and stage-specific efficacy power requirements do not depend on a non-binding futility boundary, so we can start with a design constructed without a futility boundary. We then need to calculate the lower bounds $l_k$ to satisfy the futility stopping probabilities. For stage 1, we need $Pr(Z_1 < l_1 | \theta_{01}) = \pi_F$, where $Z_1 \sim N(\sqrt{I_1}(\theta_{01}-\theta_0), 1)$. Thus $l_1 = z_{1-\pi_F} + \sqrt{I}(\theta_{01}-\theta_0)$ satisfies the target power. Given conditions C3-C4, $l_1 \leq z_\alpha$, while $u_1 \geq z_\alpha$, so $l_1 \leq u_1$.
 
-At stage $k$, consider the function $c(l) = Pr(l_1 < Z_1< u_1, \ldots, l_{k-1} < Z_{k-1}< u_{k-1}, Z_k < l \mid \theta_{0k}$. Since $\theta_{0k} \leq \theta_0$, $c(z_\alpha) \geq 1-\alpha \geq \pi_F$, while $c(-\infty) = 0$, so a value $l_k$ can be selected for which $c(l_k) = \pi_F$.
+At stage $k$, consider the function $c(l) = Pr(l_1 < Z_1< u_1, \ldots, l_{k-1} < Z_{k-1}< u_{k-1}, Z_k < l \mid \theta_{0k})$. Since $\theta_{0k} \leq \theta_0$, $c(z_\alpha) \geq 1-\alpha \geq \pi_F$, while $c(-\infty) = 0$, so a value $l_k$ can be selected for which $c(l_k) = \pi_F$.
 
 \textbf{III. Binding futility boundary}
 The construction follows the induction-based approach of part I. During the inductive step in addition to $I_K$ and $u_K$, we need to find a value for $l_{K-1}$ that will satisfy the futility boundary restriction. This can be done as shown in part II before proceeding with the selection of the parameters of the last stage. For that step, the definitions of $a(.)$ and $b(.)$ have to be slightly adjusted to include the condition of not having exceeded the lower boundary in the previous steps.
@@ -158,33 +158,25 @@ In the proof of the theorem we have obtained the following uniqueness result:
 #'@@export
 #'@@param thA numeric; effect size under the alternative hypothesis
 #'@@param thA.seq monotone numeric vector of values getting closer to thA from outside the
-#'th0-thA range (ie, if thA > th0, they should form a decreasing sequence with all values > thA). #'For the k-th value the study will stop for efficacy at or before the k-th stage with probability \code{power}.
+#'th0-thA range (ie, if thA > th0, they should form a decreasing sequence with all values > thA). #'For the k-th value the study will stop for efficacy at or before the k-th stage with probability \code{power.efficacy}.
 #'@@param th0 numeric; effect size under the null hypothesis
 #'@@param th0.seq monotone numeric vector of values getting closer to th0 from outside the
 #'th0-thA range (ie, if thA > th0, they should form an increasing sequence with all values < th0).
 #'The study will stop for futility at or before the k-th stage with probability \code{power.futility}.
 #'Its length should be equal to that of \code{thA.seq}. The default value of \code{NULL} implies no
 #'futility monitoring.
-#'@@param min.under character string, one of \code{c("alt","null","alt.mixture", "null.mixture")}
-#'or their unique abbreviations. Specifies the hypothesis under which the study sample size is
-#'minimized. \code{min.under="alt"} minimizes under the alternative hypothesis (theta=\code{thA}),
-#'\code{min.under="null"} under the null hypothesis (theta=\code{th0}), while the \code{"mixture"}
-#'option minimize the weighted average of sample sizes under theta=\code{thA.seq} or theta=\code{th0.seq}.
-#'The weights are specified in \code{mix.w}.
 #'@@param sig.level numeric; the one-sided significance level. The default is 0.025.
-#'@@param sig.level_final numeric; the desired nominal significance level for testing the null
-#'hypothesis at the final stage. Should be between 0 and \code{sig.level}. If NULL, the value
-#'will be found using the optimization criterion.
-#'@@param power numeric; the desired study power. The default is 0.9. This value will also be
-#'used to set the probability of stopping for efficacy at stage k under \code{thA.seq}.
+#'@@param power numeric; the desired study power. The default is 0.9.
+#'@@param power.efficacy numeric; the probability of stopping for efficacy at stage k under \code{thA.seq}
 #'@@param power.futility numeric; the probability of stopping for futility at stage k under \code{th0.seq}
 #'@@param futility.type character string, one of \code{c("none", "non-binding","binding")} or their
 #'unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
 #'is used, then whether the effect of the futility boundary should be included
 #'in the efficacy power/type I error calculations ("binding"), or not ("non-binding").
-#'@@param mix.w numeric vector of length equal to that of \code{thA.seq}. The weights of the
-#'elements of \code{thA.seq} or \code{th0.seq} in the optimality criterion when using \code{min.under="alt.mixture"}
-#'or \code{min.under="null.mixture"}, respectively. It will be normalized to a sum of 1.
+#'@@param mix.theta numeric vector; specifies the set of alternatives under which the design is optimized.
+#' Defaults to \code{thA}.
+#'@@param mix.w numeric vector of length equal to that of \code{mix.theta}. The weights of the
+#'elements of \code{mix.theta} in the optimality criterion. It will be normalized to a sum of 1.
 #'Defaults to equal weights.
 #'@@param control list of parameters controlling the estimation altorithm to replace the default
 #'values returned by the \code{glsControl} function.
@@ -194,24 +186,25 @@ In the proof of the theorem we have obtained the following uniqueness result:
 #'@@keywords nonparametric design
 #'@@examples
 #'
-#'gsDesignOC(0.3, thA.seq = c(1, 0.5), min.under="alt")
+#'gsDesignOC(0.3, thA.seq = c(1, 0.5))
 #'
 #'@@name gsDesignOC
 
 gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
-                       min.under=c("alt","null","alt.mixture", "null.mixture"),
-                       sig.level = 0.025, sig.level_final=NULL,
-                       power=0.9, power.futility = power,
+                       sig.level = 0.025,
+                       power=0.9, power.efficacy=power, power.futility = power,
                        futility.type=c("none","non-binding","binding"),
-                       mix.w = rep(1, length(thA.seq)),
+                       mix.theta = thA,
+                       mix.w = rep(1, length(mix.theta)),
                        control=list()){
   @< Check inputs @>
 
   # create skeleton gsDesignOC object
   res <- list(thA=thA, thA.seq=thA.seq,
               th0=th0, th0.seq=th0.seq,
-              sig.level = sig.level, sig.level_final=sig.level_final,
-              power=power, power.futility = power.futility, futility.type=futility.type)
+              sig.level = sig.level,
+              power=power, power.efficacy = power.efficacy, power.futility = power.futility,
+              futility.type=futility.type)
   class(res) <- "gsDesignOC"
 
   @< Define optimization function @>
@@ -219,9 +212,7 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   k <- length(thA.seq) + 1
   n.guess <- ztest.n(delta=c(thA.seq,thA)-th0, sd=1,
                      sig.level=sig.level, power = power)
-  if (is.null(sig.level_final)){
-    thA.seq <- c(thA.seq, thA)
-  }
+  thA.seq <- c(thA.seq, thA)
 
   oo <- optim(diff(c(0,n.guess)), fn=.cp)
 
@@ -247,30 +238,14 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
       stop("'th0.seq' should approach th0 in a monotone sequence outside the th0-thA range")
   }
 
-  min.under <- match.arg(min.under)
-  if (min.under == "alt"){
-    mix.theta <- thA
-    mix.w <- 1
-  }
-  else if (min.under == "null"){
-    mix.theta <- th0
-    mix.w <- 1
-  }
-  else if (min.under == "alt.mixture"){
-    if (length(mix.w) != length(thA.seq))
-      stop("'mix.w' should have the same length as 'thA.seq' when optimizing under the mixture of alternatives")
-    mix.theta <- thA.seq
-  }
-  else if (min.under == "null.mixture"){
-    if (is.null(th0.seq))
-      stop("'th0.seq' has to be defined when optimizing under the mixture of nulls")
-    if (length(mix.w) != length(th0.seq))
-      stop("'mix.w' should have the same length as 'th0.seq' when optimizing under the mixture of nulls")
-    mix.theta <- th0.seq
-  }
+  if (length(mix.w) != length(mix.theta))
+      stop("'mix.w' should have the same length as 'mix.theta'")
 
-  if (!is.null(sig.level_final) && ((sig.level_final <= 0 || sig.level_final > sig.level)))
-    stop("'sig.level_final' should be between 0 and 'sig.level'")
+  if (power.efficacy > power)
+    stop("The value of 'power.efficacy' should not exceed the value of 'power'.")
+
+  if (power.futility > 1-sig.level)
+    stop("The value of 'power.futility' should not exceed the value of 1-'sig.level'.")
 
   futility.type <- match.arg(futility.type)
   if (futility.type != "none"){
@@ -388,290 +363,166 @@ ocControl <- function(optim.penalty = 1000){
 
 \section{Boundary achieving the desired operating characteristics}
 
-Given the timing of the interim analyses and using the probability targets defined in Table~\ref{T:OCdef}, we can derive the boundaries $u_k$ and $l_k$.
+Given the alpha-spending sequence and using the probability targets defined in Table~\ref{T:OCdef}, we can derive the information times $\I_k$, and boundaries $u_k$ and $l_k$ using the recursive construction process described in the proof of Theorem~\ref{exists}.
 
-\subsection{No or non-binding futility boundary}
-We start by calculating the upper boundary only -- this is valid if no futility boundary is needed or if it is non-binding.
-
-The requirements can be rewritten as the following system of equations:
-\begin{align*}
-Pr(Z_1 \geq u_1 \mid \theta_{A1}) = & \pi \tag{Stage 1} \\
-Pr(Z_1 < u_1, Z_2 \geq u_2 \mid \theta_{A2}) = & \pi  \tag{Stage 2}\\
-\vdots\\
-Pr(Z_1 < u_1, \ldots, Z_{K-2} < u_{K-2}, Z_{K-1} \geq u_{K-1}  \mid \theta_{A,K-1}) = & \pi \tag{Stage K-1}\\
-Pr(Z_1 < u_1, \ldots, Z_{K-1} < u_{K-1}, Z_K \geq u_K  \mid \theta_{A}) \geq & \pi \tag{Overall power}\\
-Pr(\bigcup_{k=1}^K \{Z_k > u_k\}  \mid \theta_{0}) \leq & \alpha \tag{Overall type I error}
-\end{align*}
-
-The values of $u_1,\ldots,u_{K-1}$ can be obtained stepwise working through the first $K-1$ equations. However $u_K$ needs to satisfy both of the last two equations simultaneously. Since the power of the study can be increased by increasing the sample size, we can select $u_K$ to satisfy the (Overall type I error) condition with equality, then increase the sample size until the (Overall power condition) is also satisfied. The earlier boundary values also depend on the total sample size, so they would need to be recalculated during the search.
 
 
 @O ../R/gsDesignOC.R
 @{
-#'Calculate efficacy/futility boundary values given the timing of analyses and desired operating characteristics
+#'Calculate the information times and efficacy/futility boundary values given the alpha-spending sequence and desired operating characteristics
 
 #'@@export
 #'@@param x an object of class \code{gsDesignOC}
 
-calc.bounds <- function(x){}
+calc.bounds <- function(x, alpha.seq){
+
+  n.stages <- length(x$thA.seq) + 1
+  alpha.cum <- cumsum(alpha.seq)
+  ub <- rep(20, n.stages)
+  lb <- rep(-20, n.stages)
+  ivec <- rep(NA, n.stages)
+
+@< Define exceedance probability functions  @>
+@< Construct first stage @>
+
+  if (n.stages > 1){
+    for (k in 2:n.stages){
+    @< Construct next stage @>
+    }
+  }
+
+  if (x$futility.type == "non-binding"){
+    @< Add non-binding lower bound @>
+  }
+
+  x$upper <- ub
+  x$lower <- lb
+  x$info <- ivec
+  return(x)
+}
 
 @|calc.bounds @}
 
-@O ../R/gsDesignOC.R
-@{
-#'Conversion between nominal significance levels and alternative hypothesis values
-#'
-#' The \code{convert.bounds} function performs conversion between nominal significance levels
-#' for testing eqn{H_0: \theta=\theta_0}{H0: theta=theta0} and the values for the alternatives that have a prespecified power
-#' when \eqn{H_0}{H0} is tested at the nominal level.
-#'
-#' The \code{convert.bounds2} extends this function for both and efficacy and futility boundary,
-#' where for the futility boundary the hypothesis eqn{H_A: \theta=\theta_A}{HA: theta=thetaA}  is tested.
+The first stage is based on the fixed sample-size formula for alternative $\theta_{A1}$, power $\pi_E$, and significance level $\Delta\alpha_1$.
+@D Construct first stage @{
+  ivec[1] <- ztest.I(delta=x$thA.seq[1]-x$th0, sig.level=alpha.seq[1], power=x$power.efficacy)
+  ub[1] <- qnorm(alpha.seq[1], lower=FALSE)
+@}
 
-#' The power is cumulative over the previous stages.
-#
-#' Either the first 2 parameters has to be specified, and the other one will be computed.
+The cumulative rejection / acceptance probabilities depend on the type of the futility boundary.
+@D Define exceedance probability functions  @{
+  @< Define upper bound exceedance @>
+  @< Define function to find u(I) @>
+  @< Define lower bound exceedance @>
+  @< Define function to find l @>
+@}
 
-#'@@export
-#'@@param nominal.level numeric vector (for \code{convert.bounds}) or
-#'  numeric matrix with two rows (for \code{convert.bounds2}) of the nominal significance level for each stage.
-#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
-#'@@param nominal.level numeric vector (for \code{convert.bounds}) or
-#'  numeric matrix with two rows (for \code{convert.bounds2}) of the alternative hypotheses for each stage.
-#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
-#'@@param n integer vector of sample sizes of each stage. Its sum is the total study sample size.
-#'@@param power numeric, the target power at each stage.
-#'@@param theta.null numeric, the null hypothesis being tested
-#'@@param power.futility numeric, the target power for futility testing at each stage.
-#'@@param theta.alt numeric, the alternative hypothesis being tested for the futility boundary.
+\subsection{Upper bound exceedance}
 
-#'@@return a list with all the inputs, with the NULL component filled in
-#'@@author Aniko Szabo
-#'@@keywords internal
-#'@@examples
-#'
-#'(c1 <- convert.bounds(nominal.level = c(0.01, 0.02),
-#'                       n = c(30, 50), power=0.8, theta.null=0))
-#' convert.bounds(theta = c1$theta, n = c(30, 50), power=0.8, theta.null=0)$nominal.level
+The functions $a$ and $b$ in the proof of Theorem~\ref{T:exists} have a similar form, so we will define the following function:
+$$e(u \mid \I) = Pr\big(
+  \bigcup_{i=1}^{k-1}\{l_1< Z_1<u_1,\ldots, l_{i-1}< Z_{i-1} < u_{i-1}, Z_i \geq u_i \}
+ \bigcup \{l_1< Z_1<u_1,\ldots, l_{k-1}< Z_{k-1} < u_{k-1}, Z(\I) \geq u \} \mid \theta\big).$$
 
-convert.bounds <- function(nominal.level=NULL, theta=NULL, n, power, theta.null){
-  if (sum(sapply(list(nominal.level, theta), is.null)) !=  1)
-    stop("exactly one of 'nominal.level' and 'theta' must be NULL")
+If $l_i$ is set to $-\infty$, then that is equivalent to not having a lower boundary.
+We will need to solve equations of the form $e(u)=c$, so we will actually define a function for the difference of the LHS and RHS.
 
-  zb <- qnorm(power)
-
-
-  if (is.null(theta)){
-    .pow <- function(th, bounds, ns){
-      kk  <- length(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, times =ns, a = rep(-20, kk), b=bounds)
-      sum(gg$upper$prob) - power
-    }
-    k <- length(nominal.level)
-    cutoff <- qnorm(nominal.level, lower=FALSE)
-    theta <- theta.null + (cutoff + zb)/sqrt(n)  # initial guess
-    if (k >=2){
-      for (idx in 2:k){
-          res <- uniroot(f=.pow, interval=c(0, theta[idx]),
-                        bounds=cutoff[1:idx], ns=n[1:idx])
-          theta[idx] <- res$root
-      }
-    }
-  } else if (is.null(nominal.level)){
-    .pow <- function(x, prev.bounds, ns, theta){
-      kk  <- length(prev.bounds) + 1
-      gg <- gsDesign::gsProbability(k=kk, theta=theta, n.I =ns,
-                          a = rep(-20, kk), b=c(prev.bounds,x))
-      sum(gg$upper$prob) - power
-    }
-    k <- length(theta)
-    cutoff <- (theta - theta.null)*sqrt(n) - zb  # initial guess
-    if (k >= 2){
-      for (idx in 2:k){
-        res <- tryCatch(uniroot(f=.pow, interval=c(-20,20),
-                       prev.bounds=cutoff[1:(idx-1)], ns=n[1:idx],
-                       theta=theta[idx]), error=function(e)e)
-        if ("error" %in% class(res)) browser()
-        cutoff[idx] <- res$root
-      }
-    }
-    nominal.level <- pnorm(cutoff, lower=FALSE)
-  } else if (is.null(n)){
-    .pow <- function(x, prev.ns, bounds, theta){
-      kk  <- length(prev.ns) + 1
-      gg <- gsDesign::gsProbability(k=kk, theta=theta, n.I =c(prev.ns,x),
-                          a = rep(-20, kk), b=bounds)
-      sum(gg$upper$prob) - power
-    }
-    k <- length(theta)
-    cutoff <- qnorm(nominal.level, lower=FALSE)
-    n <- (cutoff + zb)^2 / (theta - theta.null)^2 # initial guess
-    if (k >= 2){
-      for (idx in 2:k){
-        res <- uniroot(f=.pow, interval=c(sum(n[idx-1]), sum(n)*2),
-                       prev.ns = n[1:(idx-1)],
-                       bounds=cutoff[1:idx],
-                       theta=theta[idx])
-        n[idx] <- res$root
-      }
-    }
-  }
-
-  res <- list(nominal.level = nominal.level,
-              theta = theta,
-              n = n,
-              cutoff = cutoff,
-              theta.null = theta.null,
-              power = power)
-  res
-}
-
-#'@@describeIn convert.bounds Conversion between nominal significance and alternatives with both futility and efficacy
-#'@@export
-#'@@keywords internal
-#'@@examples
-#'(c2 <- convert.bounds2(nominal.level = rbind(c(0.01, 0.02), c(0.05,0.1)),
-#'                       n = c(30, 50), power=0.8, theta.null=0, power.futility=0.9, theta.alt=0.2))
-#' convert.bounds2(theta = c2$theta, n = c(30, 50), power=0.8, theta.null=0,
-#'                power.futility=0.9, theta.alt=0.2)$nominal.level
-
-convert.bounds2 <- function(nominal.level=NULL, theta=NULL, n,
-                         power, theta.null, power.futility, theta.alt){
-  if (sum(sapply(list(nominal.level, theta), is.null)) !=  1)
-    stop("exactly one of 'nominal.level' and 'theta' must be NULL")
-
-  zb <- qnorm(power)
-
-  if (is.null(theta)){
-    .powU <- function(th, bounds, ns){
-      kk  <- NCOL(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,  a =bounds[2,], b=bounds[1,])
-      sum(gg$upper$prob) - power
-    }
-    .powL <- function(th, bounds, ns){
-      kk  <- NCOL(bounds)
-      gg <- gsDesign::gsProbability(k=kk, theta=th, n.I =ns,a =bounds[2,], b=bounds[1,])
-      sum(gg$lower$prob) - power
-    }
-    k <- NCOL(nominal.level)
-    cutoffs <- qnorm(nominal.level,lower=FALSE)
-    thetaU <- theta.null + (cutoffs[1,] + zb)/sqrt(n)  # initial guess
-    thetaL <- theta.null + (cutoffs[2,] - zb)/sqrt(n)  # initial guess
-
-    if (k >=2){
-      for (idx in 2:k){
-        resU <- uniroot(f=.powU, interval=c(-20, 20),
-                        bounds=cutoffs[,1:idx,drop=FALSE], ns=n[1:idx])
-        thetaU[idx] <- resU$root
-        resL <- uniroot(f=.powL, interval=c(-20,20),
-                        bounds=cutoffs[,1:idx,drop=FALSE], ns=n[1:idx])
-        thetaL[idx] <- resL$root
-      }
-    }
-    theta <- rbind(thetaU, thetaL)
-  } else if (is.null(nominal.level)){
-    .powU <- function(x, prev.bounds, ns, ths){
-      kk  <- NCOL(prev.bounds) + 1
-      gg <- gsDesign::gsProbability(k=kk, theta=ths, n.I =ns,
-                          a = c(prev.bounds[2,],-20), b=c(prev.bounds[1,],x))
-      sum(gg$upper$prob) - power
-    }
-    .powL <- function(x, prev.bounds, ns, ths){
-      kk  <- NCOL(prev.bounds) + 1
-      gg <- gsDesign::gsProbability(k=kk, theta=ths, n.I =ns,
-                          a = c(prev.bounds[2,],x),
-                          b=c(prev.bounds[1,],20))
-      sum(gg$lower$prob) - power
-    }
-    k <- NCOL(theta)
-    cutoffs <- matrix(NA, nrow=2, ncol=k)
-    cutoffs[1, ] <- (theta[1,] - theta.null)*sqrt(n) - zb  # initial guess
-    cutoffs[2, ] <- (theta[2,] - theta.null)*sqrt(n) + zb  # initial guess
-    if (k >= 2){
-      for (idx in 2:k){
-        resU <- tryCatch(uniroot(f=.powU, interval=c(-20,20),
-                                 prev.bounds=cutoffs[,1:(idx-1),drop=FALSE], ns=n[1:idx],
-                                 ths=theta[1,idx]), error=function(e)e)
-        if ("error" %in% class(resU)) browser()
-        cutoffs[1,idx] <- resU$root
-        resL <- tryCatch(uniroot(f=.powL, interval=c(-20,20),
-                                 prev.bounds=cutoffs[,1:(idx-1),drop=FALSE], ns=n[1:idx],
-                                 ths=theta[2,idx]), error=function(e)e)
-        if ("error" %in% class(resL)) browser()
-        cutoffs[2,idx] <- resL$root
-      }
-    }
-    nominal.level <- pnorm(cutoffs, lower.tail=FALSE)
-  }
-
-  res <- list(nominal.level = nominal.level,
-              theta = theta,
-              n = n,
-              cutoffs = cutoffs,
-              theta.null = theta.null,
-              theta.alt = theta.alt,
-              power = power)
-  res
+@d Define upper bound exceedance  @{
+exc <- function(u, I, stage,  theta, target){
+  gg <- gsDesign::gsProbability(k=stage,
+                                theta=theta,
+                                n.I =c(ivec[1:(stage-1)],I),
+                                a = c(lb[1:(stage-1)], -20),
+                                b = c(ub[1:(stage-1)], u))
+   sum(gg$upper$prob[1:stage]) - target
 }
 @}
 
-@o ../R/gsDesignOC.R
-@{
-#'Overall probability of crossing the efficacy and futility boundaries
-#'
-#'The \code{overall.crossprob} calculates the probability of crossing the efficacy and, optionally,
-#' the futility bound, given a series of alternative (and optionally, null) hypotheses tested at
-#' each stage.
+To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\alpha}_k$. Since $a(z_\alpha\mid\I_N) \geq \alpha$ and $a(\infty | \I_N) = \tilde{\alpha}_{k-1}$, the solution for fixed $\I_N$ is between $z_\alpha$ and $20$ (which is essentially $\infty$).
 
-#'@@export
-#'@@inheritParams gsDesignOC
-#'@@param theta numeric; value of the parameter under which the crossing probabilities are computed
-#'@@param timing numeric; cumulative proportio
-#'@@param
-#'@@param
-#'@@param
-#'@@param
-#'@@param
-#'@@param
-#'@@return a list with all the inputs, with the NULL component filled in
-#'@@author Aniko Szabo
-#'@@keywords internal
-#'@@examples
-#'
-#'(c1 <- convert.bounds(nominal.level = c(0.01, 0.02),
-#'                       n = c(30, 50), power=0.8, theta.null=0))
-#' convert.bounds(theta = c1$theta, n = c(30, 50), power=0.8, theta.null=0)$nominal.level
-overall.crossprob <- function(theta, timing, n, thA.seq, power, th0.seq=NULL, power.futility=NULL,
-                              sig.level_final=NULL){
-  k <- length(thA.seq)
-  bb <- convert2.cum(thetas=rbind(thA.seq, th0.seq), n=n*timing, power=power)$cutoffs
-  if (!is.null(sig.level_final)){
-    bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
-    bb <- cbind(bb, rep(bb.last,2))
-    timing <- c(timing, 1)
-    k <- k + 1
-  }
-  p <- gsProbability(k=k, theta=theta, n.I=timing*n,
-                     a=bb[2,], b=bb[1,])
-  list(cross.up=colSums(p$upper$prob), cross.down=colSums(p$lower$prob),
-       en=p$en, bounds=bb)
+@d Define function to find u(I) @{
+uI <- function(I, stage){
+  res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower=FALSE), 20),
+                 I = I, stage=stage, theta=x$th0, target = alpha.cum[stage],
+                 extendInt = "downX")
+ res$root
 }
-overall.crossprob.alt <- function(th.seq, timing, n, theta=0,
-                                   sig.level_final=.alpha*0.8, power=1-.beta){
-  k <- length(th.seq)
-  bb <- convert.alt.cum(theta=th.seq, n=n*timing, power=power)$cutoff
-  if (!is.null(sig.level_final)){
-    bb.last <- qnorm(sig.level_final, lower.tail = FALSE)
-    bb <- c(bb, bb.last)
-    timing <- c(timing, 1)
-    k <- k + 1
+@}
+
+
+
+\subsection{Construct next stage}
+
+@d Construct next stage @{
+  if (x$futility.type == "binding"){
+  @< Find lower bound for previous stage @>
   }
-  p <- gsProbability(k=k, theta=theta, n.I=timing*n,
-                     a=rep(-20,k), b=bb)
-  list(cross.p=colSums(p$upper$prob), en=p$en, upper=bb)
-}
+
+  @< Find I for next stage @>
 
 @}
+
+
+To find $I_k$, we need to solve $b(\I) = \pi_E$, if $k<K$ and $=\pi$ for $k=K$. Note that $b(I_{k-1}) \leq \pi_E$ and $b(\I_{fix}(\theta_{Ak}-\theta_0, \tilde{\alpha}_k, \pi_E)) \leq \pi_E$, we can start the search at the maximum of these two values.
+
+@d Find I for next stage @{
+if (k == n.stages){
+  power.target <- x$power
+  .th <- x$thA
+} else {
+  power.target <- x$power.efficacy
+  .th <- x$thA.seq[k]
+}
+
+minI <- max(ztest.I(delta = .th - x$th0, power=power.target, sig.level=alpha.cum[k]),
+            ivec[k-1])
+resI <- uniroot(function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
+                                target = power.target),
+                interval=c(minI, 2*minI),
+                extendInt = "upX")
+ivec[k] <- resI$root
+ub[k] <- lb[k] <- uI(resI$root, k)
+@}
+
+\subsection{Add lower bound}
+
+The lower bound will be computed only when the information and upper bound for a stage has been determined.
+
+@d Define lower bound exceedance  @{
+exc_low <- function(l, stage, theta, target){
+  gg <- gsDesign::gsProbability(k=stage,
+                                theta=theta,
+                                n.I =ivec[1:stage],
+                                a = c(head(lb, stage-1), l),
+                                b = ub[1:stage])
+   sum(gg$lower$prob[1:stage]) - target
+}
+@}
+
+
+@d Define function to find l @{
+lI <- function(stage, theta){
+  res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower=FALSE)),
+                 stage=stage, theta=theta, target = x$power.futility,
+                 extendInt = "upX")
+ res$root
+}
+@}
+
+We need to find the lower bound for stage $k-1$, before computing the size of the next stage.
+@D Find lower bound for previous stage @{
+  lb[k-1] <- lI(stage=k-1, theta=x$th0.seq[k-1])
+@}
+
+
+For a non-binding boundary, the lower bound is added only after the entire upper bound has been calculated.
+@D Add non-binding lower bound @{
+  for (k in 1:(n.stages-1)){
+    lb[k] <- lI(stage=k, theta=x$th0.seq[k])
+  }
+@}
+
+
 \section{Utility help-functions}
 
 
@@ -699,7 +550,7 @@ ztest.I <- function(delta, sig.level, power){
   I <- (za+zb)^2 /delta^2
   I
 }
-@| ztest.n @}
+@| ztest.I @}
 
 @O ../R/Utility.R
 @{
