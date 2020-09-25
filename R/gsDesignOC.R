@@ -195,11 +195,11 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
   en <- c(en_vec %*% mix.w / sum(mix.w))
 
   # cumulative stopping probability calculations
-  p.up <- ggE$upper$prob[, n.EN + (1:n.A)]
+  p.up <- ggE$upper$prob[, n.EN + (1:n.A), drop=FALSE]
   cump.up <- apply(p.up, 2, cumsum)
   thA.cumcross <- diag(cump.up)
 
-  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0)]
+  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0), drop=FALSE]
   cump.low <- apply(p.low, 2, cumsum)
   th0.cumcross <- diag(cump.low)
 
@@ -349,6 +349,7 @@ calc.bounds <- function(x, alpha.seq){
   x$upper <- ub
   x$lower <- lb
   x$info <- ivec
+  x$spending <- alpha.seq
   return(x)
 }
 
