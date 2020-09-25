@@ -86,46 +86,46 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
   class(res) <- "gsDesignOC"
 
   
-    # n.vec is stage-specific sample sizes
-    .cp <- function(n.vec){
+    .cp <- function(y.vec){
 
-      n <- sum(n.vec)
-      timing <- cumsum(n.vec/n)
-      if (!is.null(sig.level_final)) timing <- head(timing, -1)
+      y <- c(y.vec, 0)  # add y_K
+      alpha.seq <- sig.level * exp(y) / sum(exp(y))
 
-      res$n <- n
-      res$timing <- timing
-      res$bounds <- calc.bounds(res)
+      res <- calc.bounds(x=res, alpha.seq = alpha.seq)
       dp <- oc(res, EN_theta=mix.theta, mix.w=mix.w)
-      Q <-
-        controlvals$optim.penalty * abs(dp$typeI - sig.level)/sqrt(sig.level*(1-sig.level)) +
-        controlvals$optim.penalty * abs(dp$power - power)/sqrt(power*(1-power)) +
-        dp$EN
+      Q <- dp$ave.EN
       Q
     }
   
 
-  k <- length(thA.seq) + 1
-  n.guess <- ztest.n(delta=c(thA.seq,thA)-th0, sd=1,
-                     sig.level=sig.level, power = power)
-  thA.seq <- c(thA.seq, thA)
+  n.stages <- length(thA.seq) + 1
+  if (n.stages == 1){
+    alpha.seq <- sig.level
+  } else if (n.stages == 2){
+    oo <- optimize(.cp, interval=c(-5,5))
 
-  oo <- optim(diff(c(0,n.guess)), fn=.cp)
+    y.res <- oo$minimum
+    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+  } else {
+    y.start <- -log(seq(n.stages, 2, by=-1))
 
-  n <- sum(oo$par)
-  timing <- cumsum(oo$par)/n
-  if (!is.null(sig.level_final)) timing <- head(timing, -1)
+    oo <- optim(y.start, fn=.cp, method="Nelder-Mead")
 
-  res$n <- n
-  res$timing <- timing
+    y.res <- oo$par
+    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+  }
+  res <- calc.bounds(x=res, alpha.seq)
+
   return(res)
 }
 
 
 #'Operating characteristics of a potential design
 #'
-#'The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the
-#'\code{gsDesignOC} function.
+#'Calculates the average expected information under a weighted set of values for the alternative hypothesis, and
+#' the probability of stopping for futility or effecacy under the design alternatives. If the futility boundary
+#' is non-binding, then the lower boundary is not included in the calculation of the expected sample size and
+#' efficacy stopping probabilities, but it is included in the futility stopping calculations.
 #'
 #'@export
 #'@param x object of class \code{gsDesignOC}
@@ -133,9 +133,12 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 #'@param mix.w numeric vector of positive weights for each value of \code{EN_theta}. Defaults to equal weights.
 #'@return a list with the following elements:
 #'\describe{
-#'\item{typeI}{type I error, ie the probability of not crossing the efficacy boundary under theta=th0}
-#'\item{power}{power, ie the probability of crossing the efficacy boundary under theta=thA}
-#'\item{EN}{expected sample size under the requested alternatives}
+#'\item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
+#'\item{EN.vec}{numeric vector; expected sample sizes under each of the requested alternatives}
+#'\item{thA.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
+#'  under thA.seq[k], including thA at the end.}
+#'\item{th0.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for futility at or before stage k
+#'  under th0.seq[k], including th0 at the end.}
 #'}
 #'@author Aniko Szabo
 #'@keywords design
@@ -143,35 +146,55 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 #'
 #'
 
-oc <- function(x, EN_theta=x$thetaA,  mix.w = rep(1, length(EN_theta))){
+oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
 
   if (length(mix.w) != length(EN_theta))
     stop("`EN_theta` and `mix.w` should have the same length")
   if (!all(mix.w > 0))
     stop("`mix.w` should have only positive elements")
 
-  # under H0
-  res0 <- overall.crossprob(x, theta=x$theta0)
-  # under Ha
-  resA <- overall.crossprob(x, theta=x$thetaA)
+  n.stages <- length(x$thA.seq) + 1
+  n.EN <- length(EN_theta)
+  n.A <- length(c(x$thA.seq, x$thA))
+  n.0 <- length(c(x$th0.seq, x$th0))
 
-  # under EN-alternatives
-  en_vec <- numeric(length(EN_theta))
-  for (i in seq_along(EN_theta)){
-    th <- EN_theta[i]
-    # check if we already calculated the EN at this value
-    if (abs(th - x$theta0) < .Machine$double.eps){
-      en_vec[i] <- res0$EN
-    } else if (abs(th - x$thetaA) < .Machine$double.eps) {
-      en_vec[i] <- resA$EN
-    } else {
-      en_vec[i] <- overall.crossprob(x, theta=th)
-    }
-  }
-  en <- en_vec %*% mix.w / sum(mix.w)
-  list(typeI = res0$cross.up,
-       power = resA$cross.up,
-       EN = en)
+  # crossing probabilities for futility
+  ggF <- gsDesign::gsProbability(k = n.stages,
+                                  theta = c(EN_theta, x$thA.seq, x$thA, x$th0.seq, x$th0),
+                                  n.I = x$info,
+                                  a = x$lower,
+                                  b = x$upper)
+
+  # crossing probabilities for efficacy and EN
+  if (x$futility.type == "non-binding") {
+    #ignore lower boundary (except last stage) for EN & efficacy stopping
+    ggE <- gsDesign::gsProbability(k = n.stages,
+                                  theta = c(EN_theta, x$thA.seq, x$thA, x$th0.seq, x$th0),
+                                  n.I = x$info,
+                                  a = c(rep(-20, n.stages-1), x$lower[n.stages]),
+                                  b = x$upper)
+   } else {
+    ggE <- ggF
+   }
+
+  # expected sample size calculations
+  en_vec <- ggE$en[1:n.EN]
+
+  en <- c(en_vec %*% mix.w / sum(mix.w))
+
+  # cumulative stopping probability calculations
+  p.up <- ggE$upper$prob[, n.EN + (1:n.A)]
+  cump.up <- apply(p.up, 2, cumsum)
+  thA.cumcross <- diag(cump.up)
+
+  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0)]
+  cump.low <- apply(p.low, 2, cumsum)
+  th0.cumcross <- diag(cump.low)
+
+  list(ave.EN = en,
+       EN.vec = en_vec,
+       thA.cumcross = thA.cumcross,
+       th0.cumcross = th0.cumcross)
 }
 
 #'Control values for gsDesignOC
@@ -212,9 +235,9 @@ calc.bounds <- function(x, alpha.seq){
   exc <- function(u, I, stage,  theta, target){
     gg <- gsDesign::gsProbability(k=stage,
                                   theta=theta,
-                                  n.I =c(ivec[1:(stage-1)],I),
-                                  a = c(lb[1:(stage-1)], -20),
-                                  b = c(ub[1:(stage-1)], u))
+                                  n.I =c(head(ivec, stage-1),I),
+                                  a = c(head(lb, stage-1), -20),
+                                  b = c(head(ub, stage-1), u))
      sum(gg$upper$prob[1:stage]) - target
   }
   
@@ -227,19 +250,19 @@ calc.bounds <- function(x, alpha.seq){
   }
   
   
-  exc_low <- function(l, stage, theta, target){
+  exc_low <- function(l, stage, theta, target, I=ivec[stage]){
     gg <- gsDesign::gsProbability(k=stage,
                                   theta=theta,
-                                  n.I =ivec[1:stage],
+                                  n.I =c(head(ivec, stage-1), I),
                                   a = c(head(lb, stage-1), l),
                                   b = ub[1:stage])
      sum(gg$lower$prob[1:stage]) - target
   }
   
   
-  lI <- function(stage, theta){
+  lI <- function(stage, theta, I=ivec[stage]){
     res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower=FALSE)),
-                   stage=stage, theta=theta, target = x$power.futility,
+                   stage=stage, theta=theta, target = x$power.futility, I=I,
                    extendInt = "upX")
    res$root
   }
@@ -253,12 +276,6 @@ calc.bounds <- function(x, alpha.seq){
   if (n.stages > 1){
     for (k in 2:n.stages){
     
-      if (x$futility.type == "binding"){
-      
-        lb[k-1] <- lI(stage=k-1, theta=x$th0.seq[k-1])
-      
-      }
-
       
       if (k == n.stages){
         power.target <- x$power
@@ -267,17 +284,43 @@ calc.bounds <- function(x, alpha.seq){
         power.target <- x$power.efficacy
         .th <- x$thA.seq[k]
       }
+      
+      
+        if (x$futility.type == "binding"){
+          lb[k-1] <- lI(stage=k-1, theta=x$th0.seq[k-1])
+          
+            typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th, target = 1 - power.target)
+            if (typeII.overspent > 0){
+              exc_low_i <- function(ii)exc_low(lI(I=ii, theta=x$th0.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th,
+                                               target = 1-power.target)
+              resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
+              ivec[k-1] <- resI_low$root
+              ub[k-1] <- uI(I = resI_low$root, stage = k-1)
+              lb[k-1] <- lI(I = resI_low$root, theta = x$th0.seq[k-1], stage = k-1)
+            }
+          
+        } else {
+          lb[k-1] <- -20
+        }
+      
+      
+      exc_i <- function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
+                                      target = power.target)
 
       minI <- max(ztest.I(delta = .th - x$th0, power=power.target, sig.level=alpha.cum[k]),
                   ivec[k-1])
-      resI <- uniroot(function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
-                                      target = power.target),
-                      interval=c(minI, 2*minI),
-                      extendInt = "upX")
-      ivec[k] <- resI$root
-      ub[k] <- lb[k] <- uI(resI$root, k)
-      
+      curr.exc <- exc_i(minI)
 
+      if (curr.exc > 0){
+        # already past target power
+        ivec[k] <- minI
+        ub[k] <- lb[k] <- uI(minI, k)
+      } else {
+        resI <- uniroot(exc_i, interval=c(minI, 2*minI), extendInt = "upX")
+        ivec[k] <- resI$root
+        ub[k] <- lb[k] <- uI(resI$root, k)
+      }
+      
     
     }
   }

@@ -16,14 +16,12 @@ oc(x, EN_theta = x$thetaA, mix.w = rep(1, length(EN_theta)))
 \value{
 a list with the following elements:
 \describe{
-\item{typeI}{type I error, ie the probability of not crossing the efficacy boundary under theta=th0}
-\item{power}{power, ie the probability of crossing the efficacy boundary under theta=thA}
-\item{EN}{expected sample size under the requested alternatives}
+\item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
+\item{EN.vec}{numeric vector; expected sample sizes under each of the requested alternatives}
 }
 }
 \description{
-The values supplied in the function call replace the defaults and a list with all possible #'arguments is returned. The returned list is used as the \code{control} argument to the
-\code{gsDesignOC} function.
+Calculates the average expected information under a weighted set of values for the alternative hypothesis.
 }
 \examples{
 
