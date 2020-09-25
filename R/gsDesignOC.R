@@ -85,8 +85,10 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
               futility.type=futility.type)
   class(res) <- "gsDesignOC"
 
-
-  if (control$optim.method == "direct"){
+  n.stages <- length(thA.seq) + 1
+  if (n.stages == 1){
+    alpha.seq <- sig.level
+  } else if (control$optim.method == "direct"){
   
     
       .cp <- function(y.vec){
@@ -101,10 +103,7 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
       }
     
 
-    n.stages <- length(thA.seq) + 1
-    if (n.stages == 1){
-      alpha.seq <- sig.level
-    } else if (n.stages == 2){
+    if (n.stages == 2){
       oo <- optimize(.cp, interval=c(-5,5))
 
       y.res <- oo$minimum
@@ -118,10 +117,46 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
       alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
     }
   
-  } else  if (control$optim.method == "dynamic"){
+  } else if (control$optim.method == "dynamic"){
   
 
-   
+    .opt.spend <- function(x){
+      n.stages <- length(x$thA.seq) + 1
+
+      if (n.stages == 1){
+        return(x$sig.level)  # we spend it all
+      }
+
+      
+        #create skeleton for a design with one fewer stages
+        xx <- list(thA=tail(x$thA.seq, 1), thA.seq=head(x$thA.seq, -1),
+                    th0=x$th0, th0.seq=head(x$th0.seq,-1),
+                    power=x$power.efficacy, power.efficacy = x$power.efficacy, power.futility = x$power.futility,
+                    futility.type=x$futility.type)
+        class(xx) <- "gsDesignOC"
+
+      en <- function(y){
+        delta.alpha <- exp(y) * x$sig.level
+        cum.alpha <- x$sig.level - delta.alpha
+        # figure out the optimal spending within the first K-1 stages
+        xx$sig.level <- cum.alpha
+        prev.spend <-.opt.spend (xx)
+        # calculate design using these spending values
+        xx2 <- calc.bounds(x, alpha.seq = c(prev.spend, delta.alpha))
+        dp <- oc(xx2, EN_theta = mix.theta, mix.w = mix.w)
+        en.res <- dp$ave.EN
+        attr(en.res, "spending") <- c(prev.spend, delta.alpha)
+        en.res
+      }
+      
+        res.spend <- optimize(en, interval=c(-5, 0))
+        opt.spending <- attr(res.spend$objective, "spending")
+        return(opt.spending)
+      
+    }
+  
+    alpha.seq <- .opt.spend(x=res)
+  
   } else {
     stop(sprintf("Optimization method %s is not available. Choose 'dynamic' or 'direct'.", control$optim.method))
   }
@@ -225,7 +260,7 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
 #'
 #'ocControl(optim.method = "direct")
 
-ocControl <- function(optim.method = c("dynamic", "direct")){
+ocControl <- function(optim.method = c("direct", "dynamic")){
   optim.method <- match.arg(optim.method)
   list(optim.method = optim.method)
 }

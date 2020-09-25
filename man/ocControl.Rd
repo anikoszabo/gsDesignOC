@@ -4,7 +4,7 @@
 \alias{ocControl}
 \title{Control values for gsDesignOC}
 \usage{
-ocControl(optim.method = c("dynamic", "direct"))
+ocControl(optim.method = c("direct", "dynamic"))
 }
 \arguments{
 \item{optim.method}{character; defines the optimization method used: \code{"dynamic"} uses a recursive dynamic algorithm #' which selects the alpha-spending one stage at a time, \code{"direct"} uses the "Nelder-Mead" algorithm from

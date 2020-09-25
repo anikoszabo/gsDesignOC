@@ -123,7 +123,7 @@ Additionally, if a futility boundary is needed:
 
 \textbf{I. no futility boundary} We will use proof by induction over the number of stages $K$. When $K=1$, only the overall type I error and power need to be considered, and the well-known single-stage design achieving the overall information $$\I_\text{fix} = \frac{(z_\alpha + z_{1-\beta})^2}{(\theta_A - \theta_0)^2}$$ will satisfy the requirements with $u_K = z_\alpha$.
 
-Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$, overall power $\pi_E$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
+Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$ at $\theta_{A1},\ldots,\theta{A,K-2}$, overall power $\pi_E$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
 
 Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1 < u_1,\ldots, Z_{K-1} < u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is monotone in $u$, for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
 
@@ -211,10 +211,12 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
               futility.type=futility.type)
   class(res) <- "gsDesignOC"
 
-
-  if (control$optim.method == "direct"){
+  n.stages <- length(thA.seq) + 1
+  if (n.stages == 1){
+    alpha.seq <- sig.level
+  } else if (control$optim.method == "direct"){
   @< Find optimal design using direct search @>
-  } else  if (control$optim.method == "dynamic"){
+  } else if (control$optim.method == "dynamic"){
   @< Find optimal design using recursive search @>
   } else {
     stop(sprintf("Optimization method %s is not available. Choose 'dynamic' or 'direct'.", control$optim.method))
@@ -263,10 +265,7 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 @D Find optimal design using direct search @{
   @< Define optimization function @>
 
-  n.stages <- length(thA.seq) + 1
-  if (n.stages == 1){
-    alpha.seq <- sig.level
-  } else if (n.stages == 2){
+  if (n.stages == 2){
     oo <- optimize(.cp, interval=c(-5,5))
 
     y.res <- oo$minimum
@@ -303,9 +302,60 @@ where $y_K := 0$.
 
 
 \subsection{Recursive optimization}
- @D Find optimal design using recursive search @{
+@D Find optimal design using recursive search @{
+@< Define recursive optimization function @>
+  alpha.seq <- .opt.spend(x=res)
+@}
 
- @}
+The recursive optimization also implements the construction process in the proof of Theorem~\ref{Th:exists}, but will select the optimal $\Delta\alpha_K$ when adding the last stage.
+
+For the first $K-1$ stages we will select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$ at $\theta_{A1},\ldots,\theta{A,K-2}$, overall power $\pi_E$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$.
+
+The \texttt{.opt.spend} function will return the optimal alpha-spending sequence.
+
+@D Define recursive optimization function @{
+  .opt.spend <- function(x){
+    n.stages <- length(x$thA.seq) + 1
+
+    if (n.stages == 1){
+      return(x$sig.level)  # we spend it all
+    }
+
+    @< Find optimal DeltaAlpha to spend @>
+  }
+@}
+
+
+The search for $0 < \Delta\alpha_K \leq \alpha$ will be parametrized via $y = \log(\Delta\alpha_K / \alpha)$ with $y\leq 0$ to restrict it to the correct range, and better spread out small values.
+
+@D Find optimal DeltaAlpha to spend @{
+  #create skeleton for a design with one fewer stages
+  xx <- list(thA=tail(x$thA.seq, 1), thA.seq=head(x$thA.seq, -1),
+              th0=x$th0, th0.seq=head(x$th0.seq,-1),
+              power=x$power.efficacy, power.efficacy = x$power.efficacy, power.futility = x$power.futility,
+              futility.type=x$futility.type)
+  class(xx) <- "gsDesignOC"
+@< Define function to calculate EN given DeltaAlpha @>
+  res.spend <- optimize(en, interval=c(-5, 0))
+  opt.spending <- attr(res.spend$objective, "spending")
+  return(opt.spending)
+@}
+
+@D Define function to calculate EN given DeltaAlpha @{
+en <- function(y){
+  delta.alpha <- exp(y) * x$sig.level
+  cum.alpha <- x$sig.level - delta.alpha
+  # figure out the optimal spending within the first K-1 stages
+  xx$sig.level <- cum.alpha
+  prev.spend <-.opt.spend (xx)
+  # calculate design using these spending values
+  xx2 <- calc.bounds(x, alpha.seq = c(prev.spend, delta.alpha))
+  dp <- oc(xx2, EN_theta = mix.theta, mix.w = mix.w)
+  en.res <- dp$ave.EN
+  attr(en.res, "spending") <- c(prev.spend, delta.alpha)
+  en.res
+}
+@}
 
 \section{Key support functions}
 
@@ -376,11 +426,11 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
   en <- c(en_vec %*% mix.w / sum(mix.w))
 
   # cumulative stopping probability calculations
-  p.up <- ggE$upper$prob[, n.EN + (1:n.A)]
+  p.up <- ggE$upper$prob[, n.EN + (1:n.A), drop=FALSE]
   cump.up <- apply(p.up, 2, cumsum)
   thA.cumcross <- diag(cump.up)
 
-  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0)]
+  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0), drop=FALSE]
   cump.low <- apply(p.low, 2, cumsum)
   th0.cumcross <- diag(cump.low)
 
@@ -409,7 +459,7 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
 #'
 #'ocControl(optim.method = "direct")
 
-ocControl <- function(optim.method = c("dynamic", "direct")){
+ocControl <- function(optim.method = c("direct", "dynamic")){
   optim.method <- match.arg(optim.method)
   list(optim.method = optim.method)
 }
@@ -452,6 +502,7 @@ calc.bounds <- function(x, alpha.seq){
   x$upper <- ub
   x$lower <- lb
   x$info <- ivec
+  x$spending <- alpha.seq
   return(x)
 }
 
