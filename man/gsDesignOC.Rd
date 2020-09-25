@@ -16,7 +16,7 @@ gsDesignOC(
   futility.type = c("none", "non-binding", "binding"),
   mix.theta = thA,
   mix.w = rep(1, length(mix.theta)),
-  control = list()
+  control = ocControl()
 )
 }
 \arguments{

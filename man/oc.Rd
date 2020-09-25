@@ -4,7 +4,7 @@
 \alias{oc}
 \title{Operating characteristics of a potential design}
 \usage{
-oc(x, EN_theta = x$thetaA, mix.w = rep(1, length(EN_theta)))
+oc(x, EN_theta = x$thA, mix.w = rep(1, length(EN_theta)))
 }
 \arguments{
 \item{x}{object of class \code{gsDesignOC}}
@@ -18,10 +18,17 @@ a list with the following elements:
 \describe{
 \item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
 \item{EN.vec}{numeric vector; expected sample sizes under each of the requested alternatives}
+\item{thA.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
+ under thA.seq[k], including thA at the end.}
+\item{th0.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for futility at or before stage k
+ under th0.seq[k], including th0 at the end.}
 }
 }
 \description{
-Calculates the average expected information under a weighted set of values for the alternative hypothesis.
+Calculates the average expected information under a weighted set of values for the alternative hypothesis, and
+the probability of stopping for futility or effecacy under the design alternatives. If the futility boundary
+is non-binding, then the lower boundary is not included in the calculation of the expected sample size and
+efficacy stopping probabilities, but it is included in the futility stopping calculations.
 }
 \examples{
 

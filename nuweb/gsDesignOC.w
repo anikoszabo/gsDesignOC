@@ -150,6 +150,8 @@ In the proof of the theorem we have obtained the following uniqueness result:
 
 \section{Main function: calculate design}
 
+
+
 @O ../R/gsDesignOC.R
 @{
 #'Find optimal group-sequential design
@@ -198,7 +200,7 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
                        futility.type=c("none","non-binding","binding"),
                        mix.theta = thA,
                        mix.w = rep(1, length(mix.theta)),
-                       control=list()){
+                       control=ocControl()){
   @< Check inputs @>
 
   # create skeleton gsDesignOC object
@@ -209,24 +211,15 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
               futility.type=futility.type)
   class(res) <- "gsDesignOC"
 
-  @< Define optimization function @>
 
-  n.stages <- length(thA.seq) + 1
-  if (n.stages == 1){
-    alpha.seq <- sig.level
-  } else if (n.stages == 2){
-    oo <- optimize(.cp, interval=c(-5,5))
-
-    y.res <- oo$minimum
-    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+  if (control$optim.method == "direct"){
+  @< Find optimal design using direct search @>
+  } else  if (control$optim.method == "dynamic"){
+  @< Find optimal design using recursive search @>
   } else {
-    y.start <- -log(seq(n.stages, 2, by=-1))
-
-    oo <- optim(y.start, fn=.cp, method="Nelder-Mead")
-
-    y.res <- oo$par
-    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+    stop(sprintf("Optimization method %s is not available. Choose 'dynamic' or 'direct'.", control$optim.method))
   }
+
   res <- calc.bounds(x=res, alpha.seq)
 
   return(res)
@@ -256,13 +249,36 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 
   futility.type <- match.arg(futility.type)
   if (futility.type != "none"){
-    if (is.na(th0.seq)) stop("`th0.seq` should be specified if a futility bound is requested")
+    if (is.null(th0.seq)) stop("`th0.seq` should be specified if a futility bound is requested")
   }
 
   controlvals <- ocControl()
   if (!missing(control))
     controlvals[names(control)] <- control
 
+@}
+
+\subsection{Direct optimization}
+
+@D Find optimal design using direct search @{
+  @< Define optimization function @>
+
+  n.stages <- length(thA.seq) + 1
+  if (n.stages == 1){
+    alpha.seq <- sig.level
+  } else if (n.stages == 2){
+    oo <- optimize(.cp, interval=c(-5,5))
+
+    y.res <- oo$minimum
+    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+  } else {
+    y.start <- -log(seq(n.stages, 2, by=-1))
+
+    oo <- optim(y.start, fn=.cp, method="Nelder-Mead")
+
+    y.res <- oo$par
+    alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
+  }
 @}
 
 
@@ -284,6 +300,12 @@ where $y_K := 0$.
     Q
   }
 @}
+
+
+\subsection{Recursive optimization}
+ @D Find optimal design using recursive search @{
+
+ @}
 
 \section{Key support functions}
 
@@ -378,17 +400,18 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
 #'\code{gsDesignOC} function.
 #'
 #'@@export
-#'@@param optim.penalty numeric; relative weight of terms ensuring target type I and type II
-#'errors versus sample size in optimization routine
+#'@@param optim.method character; defines the optimization method used: \code{"dynamic"} uses a recursive dynamic algorithm #' which selects the alpha-spending one stage at a time, \code{"direct"} uses the "Nelder-Mead" algorithm from
+#' \code{\link{optim}} to simultaneously search over all possible alpha-spending sequences.
 #'@@return a list with components for each of the possible arguments
 #'@@author Aniko Szabo
 #'@@keywords design
 #'@@examples
 #'
-#'ocControl(optim.penalty = 100)
+#'ocControl(optim.method = "direct")
 
-ocControl <- function(optim.penalty = 1000){
-  list(optim.penalty = optim.penalty)
+ocControl <- function(optim.method = c("dynamic", "direct")){
+  optim.method <- match.arg(optim.method)
+  list(optim.method = optim.method)
 }
 @}
 

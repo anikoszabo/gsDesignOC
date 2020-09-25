@@ -4,11 +4,11 @@
 \alias{ocControl}
 \title{Control values for gsDesignOC}
 \usage{
-ocControl(optim.penalty = 1000)
+ocControl(optim.method = c("dynamic", "direct"))
 }
 \arguments{
-\item{optim.penalty}{numeric; relative weight of terms ensuring target type I and type II
-errors versus sample size in optimization routine}
+\item{optim.method}{character; defines the optimization method used: \code{"dynamic"} uses a recursive dynamic algorithm #' which selects the alpha-spending one stage at a time, \code{"direct"} uses the "Nelder-Mead" algorithm from
+\code{\link{optim}} to simultaneously search over all possible alpha-spending sequences.}
 }
 \value{
 a list with components for each of the possible arguments
@@ -20,7 +20,7 @@ arguments is returned. The returned list is used as the \code{control} argument 
 }
 \examples{
 
-ocControl(optim.penalty = 100)
+ocControl(optim.method = "direct")
 }
 \author{
 Aniko Szabo
