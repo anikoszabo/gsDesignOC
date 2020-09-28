@@ -35,7 +35,8 @@
 #'@keywords nonparametric design
 #'@examples
 #'
-#'gsDesignOC(0.3, thA.seq = c(1, 0.5))
+#'gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8, power.futility=0.8, power=0.9,
+#'           futility.type = "non-binding")
 #'
 #'@name gsDesignOC
 
@@ -189,7 +190,13 @@ gsDesignOC <- function(thA, thA.seq, th0=0, th0.seq=NULL,
 #'}
 #'@author Aniko Szabo
 #'@keywords design
+#'@importFrom stats optimize optim
+#'@importFrom utils head tail
 #'@examples
+#'g <- gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8,
+#'           power.futility=0.8, power=0.9,
+#'           futility.type = "non-binding", mix.theta=c(0.5, 0.3, 0))
+#'oc(g, EN_theta = c(0.5, 0.3, 0))
 #'
 #'
 
@@ -267,8 +274,22 @@ ocControl <- function(optim.method = c("direct", "dynamic")){
 
 #'Calculate the information times and efficacy/futility boundary values given the alpha-spending sequence and desired operating characteristics
 
-#'@export
-#'@param x an object of class \code{gsDesignOC}
+
+#'@param x a list with desired operating characteristics. Should have \code{th0}, \code{thA}, \code{thA.seq}, \code{sig.level},
+#' \code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{th0.seq} and \code{power.futility}
+#' components if lower boundary is requested. Object of class \code{gsDesignOC} (potentially incomplete)  have
+#' these components.
+#'@param alpha.seq numeric vector of stage-specific alpha-spending; values should add up to \code{x$sig.level}.
+#'@return The value of \code{x} augmented with the following components:
+#'\describe{
+#'\item{info}{numeric vector; information times for the analyses}
+#'\item{lower}{numeric vector; lower Z-score boundary for the futility decisions}
+#'\item{upper}{numeric vector; upper Z-score boundary for the efficacy decisions}
+#'\item{spending}{numeric vector}{the value of alpha-spending sequence \code{alpha.seq}}
+#'}
+#'@keywords internal
+#'@importFrom stats uniroot qnorm
+#'@importFrom utils head tail
 
 calc.bounds <- function(x, alpha.seq){
 
@@ -291,7 +312,7 @@ calc.bounds <- function(x, alpha.seq){
   
   
   uI <- function(I, stage){
-    res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower=FALSE), 20),
+    res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower.tail=FALSE), 20),
                    I = I, stage=stage, theta=x$th0, target = alpha.cum[stage],
                    extendInt = "downX")
    res$root
@@ -309,7 +330,7 @@ calc.bounds <- function(x, alpha.seq){
   
   
   lI <- function(stage, theta, I=ivec[stage]){
-    res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower=FALSE)),
+    res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower.tail=FALSE)),
                    stage=stage, theta=theta, target = x$power.futility, I=I,
                    extendInt = "upX")
    res$root
@@ -318,7 +339,7 @@ calc.bounds <- function(x, alpha.seq){
 
 
   ivec[1] <- ztest.I(delta=x$thA.seq[1]-x$th0, sig.level=alpha.seq[1], power=x$power.efficacy)
-  ub[1] <- qnorm(alpha.seq[1], lower=FALSE)
+  ub[1] <- qnorm(alpha.seq[1], lower.tail=FALSE)
 
 
   if (n.stages > 1){

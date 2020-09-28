@@ -190,7 +190,8 @@ In the proof of the theorem we have obtained the following uniqueness result:
 #'@@keywords nonparametric design
 #'@@examples
 #'
-#'gsDesignOC(0.3, thA.seq = c(1, 0.5))
+#'gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8, power.futility=0.8, power=0.9,
+#'           futility.type = "non-binding")
 #'
 #'@@name gsDesignOC
 
@@ -385,7 +386,13 @@ en <- function(y){
 #'}
 #'@@author Aniko Szabo
 #'@@keywords design
+#'@@importFrom stats optimize optim
+#'@@importFrom utils head tail
 #'@@examples
+#'g <- gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8,
+#'           power.futility=0.8, power=0.9,
+#'           futility.type = "non-binding", mix.theta=c(0.5, 0.3, 0))
+#'oc(g, EN_theta = c(0.5, 0.3, 0))
 #'
 #'
 
@@ -475,8 +482,22 @@ Given the alpha-spending sequence and using the probability targets defined in T
 @{
 #'Calculate the information times and efficacy/futility boundary values given the alpha-spending sequence and desired operating characteristics
 
-#'@@export
-#'@@param x an object of class \code{gsDesignOC}
+
+#'@@param x a list with desired operating characteristics. Should have \code{th0}, \code{thA}, \code{thA.seq}, \code{sig.level},
+#' \code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{th0.seq} and \code{power.futility}
+#' components if lower boundary is requested. Object of class \code{gsDesignOC} (potentially incomplete)  have
+#' these components.
+#'@@param alpha.seq numeric vector of stage-specific alpha-spending; values should add up to \code{x$sig.level}.
+#'@@return The value of \code{x} augmented with the following components:
+#'\describe{
+#'\item{info}{numeric vector; information times for the analyses}
+#'\item{lower}{numeric vector; lower Z-score boundary for the futility decisions}
+#'\item{upper}{numeric vector; upper Z-score boundary for the efficacy decisions}
+#'\item{spending}{numeric vector}{the value of alpha-spending sequence \code{alpha.seq}}
+#'}
+#'@@keywords internal
+#'@@importFrom stats uniroot qnorm
+#'@@importFrom utils head tail
 
 calc.bounds <- function(x, alpha.seq){
 
@@ -511,7 +532,7 @@ calc.bounds <- function(x, alpha.seq){
 The first stage is based on the fixed sample-size formula for alternative $\theta_{A1}$, power $\pi_E$, and significance level $\Delta\alpha_1$.
 @D Construct first stage @{
   ivec[1] <- ztest.I(delta=x$thA.seq[1]-x$th0, sig.level=alpha.seq[1], power=x$power.efficacy)
-  ub[1] <- qnorm(alpha.seq[1], lower=FALSE)
+  ub[1] <- qnorm(alpha.seq[1], lower.tail=FALSE)
 @}
 
 The cumulative rejection / acceptance probabilities depend on the type of the futility boundary.
@@ -547,7 +568,7 @@ To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\a
 
 @d Define function to find u(I) @{
 uI <- function(I, stage){
-  res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower=FALSE), 20),
+  res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower.tail=FALSE), 20),
                  I = I, stage=stage, theta=x$th0, target = alpha.cum[stage],
                  extendInt = "downX")
  res$root
@@ -616,7 +637,7 @@ exc_low <- function(l, stage, theta, target, I=ivec[stage]){
 
 @d Define function to find l @{
 lI <- function(stage, theta, I=ivec[stage]){
-  res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower=FALSE)),
+  res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower.tail=FALSE)),
                  stage=stage, theta=theta, target = x$power.futility, I=I,
                  extendInt = "upX")
  res$root
@@ -665,6 +686,7 @@ For a non-binding boundary, the lower bound is added only after the entire upper
 #'
 #'The \code{ztest.I} function finds the information required of a one-sided Z-test with given power
 #'and significance level
+#'#ztest.I(delta=1, sig.level=0.05, power=0.9)
 #'
 #'@@param delta numeric; targeted standardized effect size
 #'@@param sig.level numeric; one-sided significance level
@@ -672,75 +694,16 @@ For a non-binding boundary, the lower bound is added only after the entire upper
 #'@@return numeric value with the (fractional) information achieving the target power
 #'@@author Aniko Szabo
 #'@@keywords internal
-#'@@examples
+#'@@importFrom stats qnorm
 #'
-#'ztest.I(delta=1, sig.level=0.05, power=0.9)
 
 ztest.I <- function(delta, sig.level, power){
-  za <- qnorm(sig.level, lower=FALSE)
+  za <- qnorm(sig.level, lower.tail=FALSE)
   zb <- qnorm(power)
   I <- (za+zb)^2 /delta^2
   I
 }
 @| ztest.I @}
-
-@O ../R/Utility.R
-@{
-#'Conversion between boundary and nominal significance level
-#'
-#'The \code{nom.to.bnd} and \code{bnd.to.nom} functions perform conversion between the boundary and
-#' matching significance level.
-#'
-#'@@param nominal.level numeric vector or matrix with two rows of the nominal significance level for each stage.
-#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
-#'@@param cutoffs numeric vector or numeric matrix with two rows of the z-test cutoffs for each stage.
-#'  When a matrix, row 1 corresponds to the efficacy boundary and row 2 to the futility. Defaults to NULL.
-#'@@param n integer vector of sample sizes of each stage. Its sum is the total study sample size.
-#'@@param theta.null numeric, the null hypothesis being tested
-#'@@param theta.alt numeric, the alternative hypothesis being tested for the futility bound calculation
-#'@@keywords internal
-#'@@examples
-#'
-#'## only efficacy
-#'(b1 <- nom.to.bnd(nominal.level = c(0.01, 0.02), n = c(30, 50)))
-#'bnd.to.nom(b1, n=c(30,50))
-
-nom.to.bnd <- function(nominal.level, n, theta.null, theta.alt=NULL){
-  nominal.level <- rbind(nominal.level) # raises to matrix if one row
-  m <- nrow(nominal.level)
-  k <- ncol(nominal.level)
-  cutoffs <- matrix(NA, nrow=m, ncol=k)
-  cutoffs[1, ] <- qnorm(nominal.level[1,], lower=FALSE)
-  if (k > 1) {
-    # flip direction + shift hypothesis
-    cutoffs[2, ] <- qnorm(nominal.level[2,], lower=TRUE) + sqrt(n)*(theta.alt -theta.null)
-    }
-  cutoffs[1:k,]  # drops to vector if one row
-}
-
-#'@@describeIn nom.to.bnd Conversion from nominal significance level to boundary
-#'@@export
-#'@@keywords internal
-#'@@examples
-#'## both efficacy and futility
-#'(b2 <- nom.to.bnd(nominal.level = rbind(c(0.01, 0.02), c(0.05,0.1)),
-#'                 n = c(30, 50)))
-#'bnd.to.nom(b2, n=c(30,50))
-
-bnd.to.nom <- function(cutoffs, n, theta.null, theta.alt=NULL){
-  cutoffs <- rbind(cutoffs) # raises to matrix if one row
-  m <- nrow(cutoffs)
-  k <- ncol(cutoffs)
-  noms <- matrix(NA, nrow=m, ncol=k)
-  noms[1,] <- pnorm(cutoffs[1,], lower=FALSE)
-  if (k > 1) {
-    # flip direction + shift hypothesis
-    noms[2,] <- pnorm(cutoffs[2,] - sqrt(n)*(theta.alt-theta.null), lower=TRUE)
-    }
-  noms[1:k,] # drops to vector if one row
-}
-
-@}
 
 
 

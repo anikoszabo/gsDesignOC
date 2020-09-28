@@ -19,10 +19,7 @@ numeric value with the (fractional) information achieving the target power
 \description{
 The \code{ztest.I} function finds the information required of a one-sided Z-test with given power
 and significance level
-}
-\examples{
-
-ztest.I(delta=1, sig.level=0.05, power=0.9)
+#ztest.I(delta=1, sig.level=0.05, power=0.9)
 }
 \author{
 Aniko Szabo

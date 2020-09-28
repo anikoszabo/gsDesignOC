@@ -7,8 +7,23 @@
 calc.bounds(x, alpha.seq)
 }
 \arguments{
-\item{x}{an object of class \code{gsDesignOC}}
+\item{x}{a list with desired operating characteristics. Should have \code{th0}, \code{thA}, \code{thA.seq}, \code{sig.level},
+\code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{th0.seq} and \code{power.futility}
+components if lower boundary is requested. Object of class \code{gsDesignOC} (potentially incomplete)  have
+these components.}
+
+\item{alpha.seq}{numeric vector of stage-specific alpha-spending; values should add up to \code{x$sig.level}.}
+}
+\value{
+The value of \code{x} augmented with the following components:
+\describe{
+\item{info}{numeric vector; information times for the analyses}
+\item{lower}{numeric vector; lower Z-score boundary for the futility decisions}
+\item{upper}{numeric vector; upper Z-score boundary for the efficacy decisions}
+\item{spending}{numeric vector}{the value of alpha-spending sequence \code{alpha.seq}}
+}
 }
 \description{
 Calculate the information times and efficacy/futility boundary values given the alpha-spending sequence and desired operating characteristics
 }
+\keyword{internal}

@@ -31,6 +31,10 @@ is non-binding, then the lower boundary is not included in the calculation of th
 efficacy stopping probabilities, but it is included in the futility stopping calculations.
 }
 \examples{
+g <- gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8,
+          power.futility=0.8, power=0.9,
+          futility.type = "non-binding", mix.theta=c(0.5, 0.3, 0))
+oc(g, EN_theta = c(0.5, 0.3, 0))
 
 
 }

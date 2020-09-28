@@ -65,7 +65,8 @@ for a group-sequential trial
 }
 \examples{
 
-gsDesignOC(0.3, thA.seq = c(1, 0.5))
+gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8, power.futility=0.8, power=0.9,
+          futility.type = "non-binding")
 
 }
 \references{

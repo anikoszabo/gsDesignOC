@@ -16,8 +16,8 @@ load_all(gs)
 
 test(gs)
 cov <- package_coverage(gs$path)
-shine(gs)
+shine(cov)
 
 
-check(gs, check_dir = "c:/RForge", check_version = TRUE, cran = TRUE, manual=TRUE)
+check(gs, check_dir = "c:/Temp", cran = TRUE, manual=TRUE)
 install(gs)

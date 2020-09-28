@@ -6,3 +6,5 @@ nuweb/*.blg
 nuweb/*.out
 nuweb/*.tex
 nuweb/*.synctex
+nuweb/*.ind
+nuweb/*.ilg
