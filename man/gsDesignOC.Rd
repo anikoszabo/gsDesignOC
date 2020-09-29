@@ -5,52 +5,57 @@
 \title{Find optimal group-sequential design}
 \usage{
 gsDesignOC(
-  thA,
-  thA.seq,
-  th0 = 0,
-  th0.seq = NULL,
+  n.stages,
+  rE.seq,
+  rF.seq = NULL,
+  n.fix = 1,
   sig.level = 0.025,
   power = 0.9,
   power.efficacy = power,
   power.futility = power,
   futility.type = c("none", "non-binding", "binding"),
-  mix.theta = thA,
-  mix.w = rep(1, length(mix.theta)),
+  r_EN = 1,
+  r_EN.w = rep(1, length(r_EN)),
   control = ocControl()
 )
 }
 \arguments{
-\item{thA}{numeric; effect size under the alternative hypothesis}
+\item{n.stages}{integer; number of stages planned. One stage implies no interim analysis.}
 
-\item{thA.seq}{monotone numeric vector of values getting closer to thA from outside the
-th0-thA range (ie, if thA > th0, they should form a decreasing sequence with all values > thA). #'For the k-th value the study will stop for efficacy at or before the k-th stage with probability \code{power.efficacy}.}
+\item{rE.seq}{monotone decreasing numeric vector of length \code{n.stages} ending with 1.
+If it has length \code{n.stages-1}, a 1 will be appended to the end.
+For the k-th interim value the study will stop for efficacy at or before the k-th stage with probability
+\code{power.efficacy} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.}
 
-\item{th0}{numeric; effect size under the null hypothesis}
-
-\item{th0.seq}{monotone numeric vector of values getting closer to th0 from outside the
-th0-thA range (ie, if thA > th0, they should form an increasing sequence with all values < th0).
+\item{rF.seq}{monotone increasing numeric vector of length \code{n.stages} ending with 0.
+If it has length \code{n.stages-1}, a 0 will be appended to the end.
 The study will stop for futility at or before the k-th stage with probability \code{power.futility}.
-Its length should be equal to that of \code{thA.seq}. The default value of \code{NULL} implies no
-futility monitoring.}
+if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis, ie
+the true effect is actually in the opposite direction of the hypothesized effect.
+The default value of \code{NULL} implies no futility monitoring.}
+
+\item{n.fix}{numeric; the sample size for a one-stage design without interim tests. Defaults to 1,
+in which case the resulting sample sizes can be interpreted as being relative to the single-stage study sample size.}
 
 \item{sig.level}{numeric; the one-sided significance level. The default is 0.025.}
 
 \item{power}{numeric; the desired study power. The default is 0.9.}
 
-\item{power.efficacy}{numeric; the probability of stopping for efficacy at stage k under \code{thA.seq}}
+\item{power.efficacy}{numeric; the probability of stopping for efficacy at stage k under \code{rE.seq}}
 
-\item{power.futility}{numeric; the probability of stopping for futility at stage k under \code{th0.seq}}
+\item{power.futility}{numeric; the probability of stopping for futility at stage k under \code{rF.seq}}
 
 \item{futility.type}{character string, one of \code{c("none", "non-binding","binding")} or their
 unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
 is used, then whether the effect of the futility boundary should be included
 in the efficacy power/type I error calculations ("binding"), or not ("non-binding").}
 
-\item{mix.theta}{numeric vector; specifies the set of alternatives under which the design is optimized.
-Defaults to \code{thA}.}
+\item{r_EN}{numeric vector; specifies the set of alternatives under which the design is optimized.
+It is interpreted multiplicatively compared to the design alternative hypothesis.
+Defaults to 1, implying minimization under the alternative hypothesis.}
 
-\item{mix.w}{numeric vector of length equal to that of \code{mix.theta}. The weights of the
-elements of \code{mix.theta} in the optimality criterion. It will be normalized to a sum of 1.
+\item{r_EN.w}{numeric vector of length equal to that of \code{r_EN}. The weights of the
+elements of \code{r_EN} in the optimality criterion. It will be normalized to a sum of 1.
 Defaults to equal weights.}
 
 \item{control}{list of parameters controlling the estimation altorithm to replace the default
@@ -65,7 +70,8 @@ for a group-sequential trial
 }
 \examples{
 
-gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8, power.futility=0.8, power=0.9,
+gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
+          power.efficacy=0.8, power.futility=0.8, power=0.9,
           futility.type = "non-binding")
 
 }
