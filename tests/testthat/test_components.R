@@ -1,10 +1,10 @@
 
 test_that("calc.bounds for one stage returns fixed-sample test",{
-  x <- list(th0=0, thA=0.5, sig.level=0.05, power=0.8)
+  x <- list(n.stages=1, rE.seq=0.5, sig.level=0.05, power=0.8, power.efficacy=0.8, futility.type="none")
   xx <- calc.bounds(x, alpha.seq=0.05)
   expect_equal(xx$lower, -20)
   expect_equal(xx$upper, qnorm(0.95))
-  expect_equal(xx$info, 24.73023)
+  expect_equal(xx$info, 24.7302289280791)
   expect_equal(xx$spending, 0.05)
  })
 

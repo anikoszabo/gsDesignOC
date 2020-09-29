@@ -4,7 +4,7 @@
 \alias{oc}
 \title{Operating characteristics of a potential design}
 \usage{
-oc(x, EN_theta = x$thA, mix.w = rep(1, length(EN_theta)))
+oc(x, EN_theta = 1, mix.w = rep(1, length(EN_theta)))
 }
 \arguments{
 \item{x}{object of class \code{gsDesignOC}}
@@ -18,10 +18,10 @@ a list with the following elements:
 \describe{
 \item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
 \item{EN.vec}{numeric vector; expected sample sizes under each of the requested alternatives}
-\item{thA.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
- under thA.seq[k], including thA at the end.}
-\item{th0.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for futility at or before stage k
- under th0.seq[k], including th0 at the end.}
+\item{efficacy.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
+ under rE.seq[k], including 1 at the end.}
+\item{futility.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for
+ futility at or before stage k under rF.seq[k], including 0 at the end.}
 }
 }
 \description{
@@ -31,10 +31,10 @@ is non-binding, then the lower boundary is not included in the calculation of th
 efficacy stopping probabilities, but it is included in the futility stopping calculations.
 }
 \examples{
-g <- gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8,
+g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
           power.futility=0.8, power=0.9,
-          futility.type = "non-binding", mix.theta=c(0.5, 0.3, 0))
-oc(g, EN_theta = c(0.5, 0.3, 0))
+          futility.type = "non-binding", r_EN=c(1.5, 1, 0))
+oc(g, EN_theta = c(1.5, 1, 0))
 
 
 }

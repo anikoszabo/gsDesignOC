@@ -250,6 +250,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
   }
 
   res <- calc.bounds(x=res, alpha.seq)
+  res$n <- n.fix * res$info /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
 
   return(res)
 }
@@ -386,8 +387,8 @@ where $y_K := 0$.
     y <- c(y.vec, 0)  # add y_K
     alpha.seq <- sig.level * exp(y) / sum(exp(y))
 
-    res <- calc.bounds(x=res, alpha.seq = alpha.seq)
-    dp <- oc(res, EN_theta=mix.theta, mix.w=mix.w)
+    rescp <- calc.bounds(x=res, alpha.seq = alpha.seq)
+    dp <- oc(rescp, EN_theta=r_EN, mix.w=r_EN.w)
     Q <- dp$ave.EN
     Q
   }
@@ -402,15 +403,13 @@ where $y_K := 0$.
 
 The recursive optimization also implements the construction process in the proof of Theorem~\ref{Th:exists}, but will select the optimal $\Delta\alpha_K$ when adding the last stage.
 
-For the first $K-1$ stages we will select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$ at $\theta_{A1},\ldots,\theta{A,K-2}$, overall power $\pi_E$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$.
+For the first $K-1$ stages we will select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$ at $\theta_{A1},\ldots,\theta_{A,K-2}$, overall power $\pi_E$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$.
 
 The \texttt{.opt.spend} function will return the optimal alpha-spending sequence.
 
 @D Define recursive optimization function @{
   .opt.spend <- function(x){
-    n.stages <- length(x$thA.seq) + 1
-
-    if (n.stages == 1){
+    if (x$n.stages == 1){
       return(x$sig.level)  # we spend it all
     }
 
@@ -423,10 +422,11 @@ The search for $0 < \Delta\alpha_K \leq \alpha$ will be parametrized via $y = \l
 
 @D Find optimal DeltaAlpha to spend @{
   #create skeleton for a design with one fewer stages
-  xx <- list(thA=tail(x$thA.seq, 1), thA.seq=head(x$thA.seq, -1),
-              th0=x$th0, th0.seq=head(x$th0.seq,-1),
-              power=x$power.efficacy, power.efficacy = x$power.efficacy, power.futility = x$power.futility,
-              futility.type=x$futility.type)
+  xx <- list(n.stages = x$n.stages - 1,
+             rE.seq = head(rE.seq, -1),
+             rF.seq = head(rF.seq, -1),
+             power=x$power.efficacy, power.efficacy = x$power.efficacy, power.futility = x$power.futility,
+             futility.type=x$futility.type)
   class(xx) <- "gsDesignOC"
 @< Define function to calculate EN given DeltaAlpha @>
   res.spend <- optimize(en, interval=c(-5, 0))
@@ -443,7 +443,7 @@ en <- function(y){
   prev.spend <-.opt.spend (xx)
   # calculate design using these spending values
   xx2 <- calc.bounds(x, alpha.seq = c(prev.spend, delta.alpha))
-  dp <- oc(xx2, EN_theta = mix.theta, mix.w = mix.w)
+  dp <- oc(xx2, EN_theta = r_EN, mix.w = r_EN.w)
   en.res <- dp$ave.EN
   attr(en.res, "spending") <- c(prev.spend, delta.alpha)
   en.res
@@ -471,38 +471,37 @@ en <- function(y){
 #'\describe{
 #'\item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
 #'\item{EN.vec}{numeric vector; expected sample sizes under each of the requested alternatives}
-#'\item{thA.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
-#'  under thA.seq[k], including thA at the end.}
-#'\item{th0.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for futility at or before stage k
-#'  under th0.seq[k], including th0 at the end.}
+#'\item{efficacy.cumcross}{numeric vector; cumulative probability of stopping for efficacy at or before stage k
+#'  under rE.seq[k], including 1 at the end.}
+#'\item{futility.cumcross}{numeric vector}{numeric vector; cumulative probability of stopping for
+#'  futility at or before stage k under rF.seq[k], including 0 at the end.}
 #'}
 #'@@author Aniko Szabo
 #'@@keywords design
 #'@@importFrom stats optimize optim
 #'@@importFrom utils head tail
 #'@@examples
-#'g <- gsDesignOC(0.3, thA.seq = 0.5, th0.seq = -0.3, power.efficacy=0.8,
+#'g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
 #'           power.futility=0.8, power=0.9,
-#'           futility.type = "non-binding", mix.theta=c(0.5, 0.3, 0))
-#'oc(g, EN_theta = c(0.5, 0.3, 0))
+#'           futility.type = "non-binding", r_EN=c(1.5, 1, 0))
+#'oc(g, EN_theta = c(1.5, 1, 0))
 #'
 #'
 
-oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
+oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
 
   if (length(mix.w) != length(EN_theta))
     stop("'EN_theta' and 'mix.w' should have the same length")
   if (!all(mix.w > 0))
     stop("'mix.w' should have only positive elements")
 
-  n.stages <- length(x$thA.seq) + 1
   n.EN <- length(EN_theta)
-  n.A <- length(c(x$thA.seq, x$thA))
-  n.0 <- length(c(x$th0.seq, x$th0))
+  n.A <- length(x$rE.seq)
+  n.0 <- length(x$rF.seq)
 
   # crossing probabilities for futility
-  ggF <- gsDesign::gsProbability(k = n.stages,
-                                  theta = c(EN_theta, x$thA.seq, x$thA, x$th0.seq, x$th0),
+  ggF <- gsDesign::gsProbability(k = x$n.stages,
+                                  theta = c(EN_theta, x$rE.seq, x$rF.seq),
                                   n.I = x$info,
                                   a = x$lower,
                                   b = x$upper)
@@ -510,10 +509,10 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
   # crossing probabilities for efficacy and EN
   if (x$futility.type == "non-binding") {
     #ignore lower boundary (except last stage) for EN & efficacy stopping
-    ggE <- gsDesign::gsProbability(k = n.stages,
-                                  theta = c(EN_theta, x$thA.seq, x$thA, x$th0.seq, x$th0),
+    ggE <- gsDesign::gsProbability(k = x$n.stages,
+                                  theta = c(EN_theta, x$rE.seq, x$rF.seq),
                                   n.I = x$info,
-                                  a = c(rep(-20, n.stages-1), x$lower[n.stages]),
+                                  a = c(rep(-20, x$n.stages-1), x$lower[x$n.stages]),
                                   b = x$upper)
    } else {
     ggE <- ggF
@@ -535,8 +534,8 @@ oc <- function(x, EN_theta=x$thA,  mix.w = rep(1, length(EN_theta))){
 
   list(ave.EN = en,
        EN.vec = en_vec,
-       thA.cumcross = thA.cumcross,
-       th0.cumcross = th0.cumcross)
+       efficacy.cumcross = thA.cumcross,
+       futility.cumcross = th0.cumcross)
 }
 @| oc@}
 
@@ -575,9 +574,9 @@ Given the alpha-spending sequence and using the probability targets defined in T
 #'Calculate the information times and efficacy/futility boundary values given the alpha-spending sequence and desired operating characteristics
 
 
-#'@@param x a list with desired operating characteristics. Should have \code{th0}, \code{thA}, \code{thA.seq}, \code{sig.level},
-#' \code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{th0.seq} and \code{power.futility}
-#' components if lower boundary is requested. Object of class \code{gsDesignOC} (potentially incomplete)  have
+#'@@param x a list with desired operating characteristics. Should have \code{rE.seq}, \code{sig.level},
+#' \code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{rF.seq} and \code{power.futility}
+#' components if lower boundary is requested. Objects of class \code{gsDesignOC} (potentially incomplete)  have
 #' these components.
 #'@@param alpha.seq numeric vector of stage-specific alpha-spending; values should add up to \code{x$sig.level}.
 #'@@return The value of \code{x} augmented with the following components:
@@ -593,17 +592,16 @@ Given the alpha-spending sequence and using the probability targets defined in T
 
 calc.bounds <- function(x, alpha.seq){
 
-  n.stages <- length(x$thA.seq) + 1
   alpha.cum <- cumsum(alpha.seq)
-  ub <- rep(20, n.stages)
-  lb <- rep(-20, n.stages)
-  ivec <- rep(NA, n.stages)
+  ub <- rep(20, x$n.stages)
+  lb <- rep(-20, x$n.stages)
+  ivec <- rep(NA, x$n.stages)
 
 @< Define exceedance probability functions  @>
 @< Construct first stage @>
 
-  if (n.stages > 1){
-    for (k in 2:n.stages){
+  if (x$n.stages > 1){
+    for (k in 2:x$n.stages){
     @< Construct next stage @>
     }
   }
@@ -623,17 +621,17 @@ calc.bounds <- function(x, alpha.seq){
 
 @O ../tests/testthat/test_components.R @{
 test_that("calc.bounds for one stage returns fixed-sample test",{
-  x <- list(th0=0, thA=0.5, sig.level=0.05, power=0.8)
+  x <- list(n.stages=1, rE.seq=0.5, sig.level=0.05, power=0.8, power.efficacy=0.8, futility.type="none")
   xx <- calc.bounds(x, alpha.seq=0.05)
   expect_equal(xx$lower, -20)
   expect_equal(xx$upper, qnorm(0.95))
-  expect_equal(xx$info, 24.73023)
+  expect_equal(xx$info, 24.7302289280791)
   expect_equal(xx$spending, 0.05)
  })
 @}
 The first stage is based on the fixed sample-size formula for alternative $\theta_{A1}$, power $\pi_E$, and significance level $\Delta\alpha_1$.
 @D Construct first stage @{
-  ivec[1] <- ztest.I(delta=x$thA.seq[1]-x$th0, sig.level=alpha.seq[1], power=x$power.efficacy)
+  ivec[1] <- ztest.I(delta=x$rE.seq[1], sig.level=alpha.seq[1], power=x$power.efficacy)
   ub[1] <- qnorm(alpha.seq[1], lower.tail=FALSE)
 @}
 
@@ -671,7 +669,7 @@ To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\a
 @d Define function to find u(I) @{
 uI <- function(I, stage){
   res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower.tail=FALSE), 20),
-                 I = I, stage=stage, theta=x$th0, target = alpha.cum[stage],
+                 I = I, stage=stage, theta=0, target = alpha.cum[stage],
                  extendInt = "downX")
  res$root
 }
@@ -690,13 +688,13 @@ uI <- function(I, stage){
 
 To find $I_k$, we need to solve $b(\I) = \pi_E$, if $k<K$ and $=\pi$ for $k=K$.
 @d Determine target power and alternatives @{
-if (k == n.stages){
+if (k == x$n.stages){
   power.target <- x$power
-  .th <- x$thA
 } else {
   power.target <- x$power.efficacy
-  .th <- x$thA.seq[k]
 }
+.th <- x$rE.seq[k]
+
 @}
 
 
@@ -706,7 +704,7 @@ Note that $b(I_{k-1}) \leq \pi_E$ and $b(\I_{fix}(\theta_{Ak}-\theta_0, \tilde{\
 exc_i <- function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
                                 target = power.target)
 
-minI <- max(ztest.I(delta = .th - x$th0, power=power.target, sig.level=alpha.cum[k]),
+minI <- max(ztest.I(delta = .th, power=power.target, sig.level=alpha.cum[k]),
             ivec[k-1])
 curr.exc <- exc_i(minI)
 
@@ -749,7 +747,7 @@ lI <- function(stage, theta, I=ivec[stage]){
 We need to find the lower bound for stage $k-1$, before computing the size of the next stage. If the boundary is not binding, we need to overwrite $l_k:= u_k$ that was indicating the "last" stage so far to $l_k=-\infty$.
 @D Find lower bound for previous stage @{
   if (x$futility.type == "binding"){
-    lb[k-1] <- lI(stage=k-1, theta=x$th0.seq[k-1])
+    lb[k-1] <- lI(stage=k-1, theta=x$rF.seq[k-1])
     @< Check beta-spending and adjust previous stage if needed @>
   } else {
     lb[k-1] <- -20
@@ -760,20 +758,20 @@ With a binding boundary it is possible that the addition of $l_{K-1}$ overspends
 @D Check beta-spending and adjust previous stage if needed @{
   typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th, target = 1 - power.target)
   if (typeII.overspent > 0){
-    exc_low_i <- function(ii)exc_low(lI(I=ii, theta=x$th0.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th,
+    exc_low_i <- function(ii)exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th,
                                      target = 1-power.target)
     resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
     ivec[k-1] <- resI_low$root
     ub[k-1] <- uI(I = resI_low$root, stage = k-1)
-    lb[k-1] <- lI(I = resI_low$root, theta = x$th0.seq[k-1], stage = k-1)
+    lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
   }
 @}
 
 
 For a non-binding boundary, the lower bound is added only after the entire upper bound has been calculated.
 @D Add non-binding lower bound @{
-  for (k in 1:(n.stages-1)){
-    lb[k] <- lI(stage=k, theta=x$th0.seq[k])
+  for (k in 1:(x$n.stages-1)){
+    lb[k] <- lI(stage=k, theta=x$rF.seq[k])
   }
 @}
 

@@ -16,7 +16,7 @@ load_all(gs)
 
 test(gs)
 cov <- package_coverage(gs$path)
-shine(cov)
+report(cov)
 
 
 check(gs, check_dir = "c:/Temp", cran = TRUE, manual=TRUE)

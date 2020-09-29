@@ -7,9 +7,9 @@
 calc.bounds(x, alpha.seq)
 }
 \arguments{
-\item{x}{a list with desired operating characteristics. Should have \code{th0}, \code{thA}, \code{thA.seq}, \code{sig.level},
-\code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{th0.seq} and \code{power.futility}
-components if lower boundary is requested. Object of class \code{gsDesignOC} (potentially incomplete)  have
+\item{x}{a list with desired operating characteristics. Should have \code{rE.seq}, \code{sig.level},
+\code{power}, \code{power.efficacy}, and \code{futility.type} components; and \code{rF.seq} and \code{power.futility}
+components if lower boundary is requested. Objects of class \code{gsDesignOC} (potentially incomplete)  have
 these components.}
 
 \item{alpha.seq}{numeric vector of stage-specific alpha-spending; values should add up to \code{x$sig.level}.}
