@@ -524,13 +524,21 @@ oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
   en <- c(en_vec %*% mix.w / sum(mix.w))
 
   # cumulative stopping probability calculations
-  p.up <- ggE$upper$prob[, n.EN + (1:n.A), drop=FALSE]
-  cump.up <- apply(p.up, 2, cumsum)
-  thA.cumcross <- diag(cump.up)
+  if (n.A > 0){
+    p.up <- ggE$upper$prob[, n.EN + (1:n.A), drop=FALSE]
+    cump.up <- apply(p.up, 2, cumsum)
+    thA.cumcross <- diag(cump.up)
+  } else {
+    thA.cumcross <- NULL
+  }
 
-  p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0), drop=FALSE]
-  cump.low <- apply(p.low, 2, cumsum)
-  th0.cumcross <- diag(cump.low)
+  if (n.0 > 0){
+    p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0), drop=FALSE]
+    cump.low <- apply(p.low, 2, cumsum)
+    th0.cumcross <- diag(cump.low)
+  } else {
+    th0.cumcross <- NULL
+  }
 
   list(ave.EN = en,
        EN.vec = en_vec,
