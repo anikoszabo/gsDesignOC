@@ -234,7 +234,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
 
   # create skeleton gsDesignOC object
   res <- list(n.stages = n.stages, rE.seq=rE.seq, rF.seq = rF.seq,
-              sig.level = sig.level,
+              sig.level = sig.level, n.fix = n.fix,
               power=power, power.efficacy = power.efficacy, power.futility = power.futility,
               futility.type=futility.type)
   class(res) <- "gsDesignOC"
@@ -388,7 +388,7 @@ where $y_K := 0$.
     alpha.seq <- sig.level * exp(y) / sum(exp(y))
 
     rescp <- calc.bounds(x=res, alpha.seq = alpha.seq)
-    dp <- oc(rescp, EN_theta=r_EN, mix.w=r_EN.w)
+    dp <- oc(rescp, r_EN=r_EN, r_EN.w=r_EN.w)
     Q <- dp$ave.EN
     Q
   }
@@ -443,7 +443,7 @@ en <- function(y){
   prev.spend <-.opt.spend (xx)
   # calculate design using these spending values
   xx2 <- calc.bounds(x, alpha.seq = c(prev.spend, delta.alpha))
-  dp <- oc(xx2, EN_theta = r_EN, mix.w = r_EN.w)
+  dp <- oc(xx2, r_EN = r_EN, r_EN.w = r_EN.w)
   en.res <- dp$ave.EN
   attr(en.res, "spending") <- c(prev.spend, delta.alpha)
   en.res
@@ -465,8 +465,8 @@ en <- function(y){
 #'
 #'@@export
 #'@@param x object of class \code{gsDesignOC}
-#'@@param EN_theta numeric vector of parameter values for which expected sample size calculation is performed
-#'@@param mix.w numeric vector of positive weights for each value of \code{EN_theta}. Defaults to equal weights.
+#'@@param r_EN numeric vector of parameter values for which expected sample size calculation is performed
+#'@@param r_EN.w numeric vector of positive weights for each value of \code{r_EN}. Defaults to equal weights.
 #'@@return a list with the following elements:
 #'\describe{
 #'\item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
@@ -484,24 +484,24 @@ en <- function(y){
 #'g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
 #'           power.futility=0.8, power=0.9,
 #'           futility.type = "non-binding", r_EN=c(1.5, 1, 0))
-#'oc(g, EN_theta = c(1.5, 1, 0))
+#'oc(g, r_EN = c(1.5, 1, 0))
 #'
 #'
 
-oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
+oc <- function(x, r_EN=1,  r_EN.w = rep(1, length(r_EN))){
 
-  if (length(mix.w) != length(EN_theta))
-    stop("'EN_theta' and 'mix.w' should have the same length")
-  if (!all(mix.w > 0))
-    stop("'mix.w' should have only positive elements")
+  if (length(r_EN.w) != length(r_EN))
+    stop("'r_EN' and 'r_EN.w' should have the same length")
+  if (!all(r_EN.w > 0))
+    stop("'r_EN.w' should have only positive elements")
 
-  n.EN <- length(EN_theta)
+  n.EN <- length(r_EN)
   n.A <- length(x$rE.seq)
   n.0 <- length(x$rF.seq)
 
   # crossing probabilities for futility
   ggF <- gsDesign::gsProbability(k = x$n.stages,
-                                  theta = c(EN_theta, x$rE.seq, x$rF.seq),
+                                  theta = c(r_EN, x$rE.seq, x$rF.seq),
                                   n.I = x$info,
                                   a = x$lower,
                                   b = x$upper)
@@ -510,7 +510,7 @@ oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
   if (x$futility.type == "non-binding") {
     #ignore lower boundary (except last stage) for EN & efficacy stopping
     ggE <- gsDesign::gsProbability(k = x$n.stages,
-                                  theta = c(EN_theta, x$rE.seq, x$rF.seq),
+                                  theta = c(r_EN, x$rE.seq, x$rF.seq),
                                   n.I = x$info,
                                   a = c(rep(-20, x$n.stages-1), x$lower[x$n.stages]),
                                   b = x$upper)
@@ -520,14 +520,18 @@ oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
 
   # expected sample size calculations
   en_vec <- ggE$en[1:n.EN]
+  # rescale to n.fix
+  n.fix <- if (is.null(x$n.fix)) 1 else x$n.fix
+  en_vec <- n.fix * en_vec /(qnorm(x$sig.level, lower.tail=FALSE) + qnorm(x$power))^2
 
-  en <- c(en_vec %*% mix.w / sum(mix.w))
+  # weighted average
+  en <- c(en_vec %*% r_EN.w / sum(r_EN.w))
 
   # cumulative stopping probability calculations
   if (n.A > 0){
     p.up <- ggE$upper$prob[, n.EN + (1:n.A), drop=FALSE]
     cump.up <- apply(p.up, 2, cumsum)
-    thA.cumcross <- diag(cump.up)
+    thA.cumcross <- setNames(diag(cump.up), x$rE.seq)
   } else {
     thA.cumcross <- NULL
   }
@@ -535,13 +539,13 @@ oc <- function(x, EN_theta=1,  mix.w = rep(1, length(EN_theta))){
   if (n.0 > 0){
     p.low <- ggF$lower$prob[, n.EN + n.A + (1:n.0), drop=FALSE]
     cump.low <- apply(p.low, 2, cumsum)
-    th0.cumcross <- diag(cump.low)
+    th0.cumcross <- setNames(diag(cump.low), x$rF.seq)
   } else {
     th0.cumcross <- NULL
   }
 
   list(ave.EN = en,
-       EN.vec = en_vec,
+       EN.vec = setNames(en_vec, r_EN),
        efficacy.cumcross = thA.cumcross,
        futility.cumcross = th0.cumcross)
 }

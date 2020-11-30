@@ -6,6 +6,7 @@ gs <- as.package("../gsDesignOC")
 
 # initial setup
 #use_testthat()
+use_readme_rmd()
 
 nuweb(gs)
 shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer gsDesignOC.tex")
