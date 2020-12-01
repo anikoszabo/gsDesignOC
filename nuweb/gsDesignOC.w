@@ -257,6 +257,8 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
 
 @}
 
+TODO: add check for futility.type  if rF.seq is given
+
 @D Check inputs @{
   if (length(rE.seq) == n.stages - 1){
     rE.seq <- c(rE.seq, 1)
@@ -676,11 +678,11 @@ exc <- function(u, I, stage,  theta, target){
 }
 @}
 
-To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\alpha}_k$. Since $a(z_\alpha\mid\I_N) \geq \alpha$ and $a(\infty | \I_N) = \tilde{\alpha}_{k-1}$, the solution for fixed $\I_N$ is between $z_\alpha$ and $20$ (which is essentially $\infty$).
+To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\alpha}_k$. Since $a(z_\alpha\mid\I_N) \geq \alpha$ [NOTE: I AM NOT SURE ABOUT THAT] and $a(\infty | \I_N) = \tilde{\alpha}_{k-1}$, the solution for fixed $\I_N$ is between $z_\alpha$ and $20$ (which is essentially $\infty$).
 
 @d Define function to find u(I) @{
 uI <- function(I, stage){
-  res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower.tail=FALSE), 20),
+  res <- uniroot(exc, interval=c(-20, 20),
                  I = I, stage=stage, theta=0, target = alpha.cum[stage],
                  extendInt = "downX")
  res$root
@@ -733,7 +735,7 @@ if (curr.exc > 0){
 
 \subsection{Add lower bound}
 
-The lower bound will usually be computed only when the information and upper bound for a stage has been determined.
+The lower bound will usually be computed only when the information and upper bound for a stage has been determined. We will allow for vectorization over \texttt{theta} and \texttt{target}.
 
 @d Define lower bound exceedance  @{
 exc_low <- function(l, stage, theta, target, I=ivec[stage]){
@@ -742,7 +744,8 @@ exc_low <- function(l, stage, theta, target, I=ivec[stage]){
                                 n.I =c(head(ivec, stage-1), I),
                                 a = c(head(lb, stage-1), l),
                                 b = ub[1:stage])
-   sum(gg$lower$prob[1:stage]) - target
+  #lower$prob has rows by stage and columns by theta
+   colSums(gg$lower$prob[1:stage, ,drop=FALSE]) - target
 }
 @}
 
@@ -766,16 +769,20 @@ We need to find the lower bound for stage $k-1$, before computing the size of th
   }
 @}
 
-With a binding boundary it is possible that the addition of $l_{K-1}$ overspends the type II error under $\theta_{Ak}$, and the target power for the next stage is not achievable anymore. In this case, the information for the $(K-1)$st stage needs to be increased.
+With a binding boundary it is possible that the addition of $l_{K-1}$ overspends the type II error under $\theta_{Ak}$, and the target power for the next stage is not achievable anymore. More generally, the type II error could be overspent for any $\theta_{Aj}, j\geq k$. In this case, the information for the $(K-1)$st stage needs to be increased.
+
 @D Check beta-spending and adjust previous stage if needed @{
-  typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th, target = 1 - power.target)
-  if (typeII.overspent > 0){
-    exc_low_i <- function(ii)exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th,
-                                     target = 1-power.target)
+  .th.future <- x$rE.seq[k:x$n.stages]
+  .pow.future <- c(rep(x$power.efficacy, x$n.stages-1), x$power) [k:x$n.stages]
+  typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th.future, target = 1 - .pow.future)
+  if (any(typeII.overspent > 0)){
+    exc_low_i <- function(ii)
+      max(exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th.future,
+                     target = 1-.pow.future))
     resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
-    ivec[k-1] <- resI_low$root
-    ub[k-1] <- uI(I = resI_low$root, stage = k-1)
-    lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+    ivec[k-1] <- resI_low$root+1e-5
+    ub[k-1] <- uI(I = resI_low$root+1e-5, stage = k-1)
+    lb[k-1] <- lI(I = resI_low$root+1e-5, theta = x$rF.seq[k-1], stage = k-1)
   }
 @}
 

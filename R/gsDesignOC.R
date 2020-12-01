@@ -342,7 +342,7 @@ calc.bounds <- function(x, alpha.seq){
   
   
   uI <- function(I, stage){
-    res <- uniroot(exc, interval=c(qnorm(x$sig.level, lower.tail=FALSE), 20),
+    res <- uniroot(exc, interval=c(-20, 20),
                    I = I, stage=stage, theta=0, target = alpha.cum[stage],
                    extendInt = "downX")
    res$root
@@ -355,7 +355,8 @@ calc.bounds <- function(x, alpha.seq){
                                   n.I =c(head(ivec, stage-1), I),
                                   a = c(head(lb, stage-1), l),
                                   b = ub[1:stage])
-     sum(gg$lower$prob[1:stage]) - target
+    #lower$prob has rows by stage and columns by theta
+     colSums(gg$lower$prob[1:stage, ,drop=FALSE]) - target
   }
   
   
@@ -388,14 +389,17 @@ calc.bounds <- function(x, alpha.seq){
         if (x$futility.type == "binding"){
           lb[k-1] <- lI(stage=k-1, theta=x$rF.seq[k-1])
           
-            typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th, target = 1 - power.target)
-            if (typeII.overspent > 0){
-              exc_low_i <- function(ii)exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th,
-                                               target = 1-power.target)
+            .th.future <- x$rE.seq[k:x$n.stages]
+            .pow.future <- c(rep(x$power.efficacy, x$n.stages-1), x$power) [k:x$n.stages]
+            typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th.future, target = 1 - .pow.future)
+            if (any(typeII.overspent > 0)){
+              exc_low_i <- function(ii)
+                max(exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th.future,
+                               target = 1-.pow.future))
               resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
-              ivec[k-1] <- resI_low$root
-              ub[k-1] <- uI(I = resI_low$root, stage = k-1)
-              lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+              ivec[k-1] <- resI_low$root+1e-5
+              ub[k-1] <- uI(I = resI_low$root+1e-5, stage = k-1)
+              lb[k-1] <- lI(I = resI_low$root+1e-5, theta = x$rF.seq[k-1], stage = k-1)
             }
           
         } else {
