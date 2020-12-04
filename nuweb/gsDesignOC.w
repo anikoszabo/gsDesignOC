@@ -769,20 +769,23 @@ We need to find the lower bound for stage $k-1$, before computing the size of th
   }
 @}
 
-With a binding boundary it is possible that the addition of $l_{K-1}$ overspends the type II error under $\theta_{Ak}$, and the target power for the next stage is not achievable anymore. More generally, the type II error could be overspent for any $\theta_{Aj}, j\geq k$. In this case, the information for the $(K-1)$st stage needs to be increased.
+With a binding boundary it is possible that the addition of $l_{K-1}$ overspends the type II error under $\theta_{Ak}$, and the target power for the next stage is not achievable anymore. More generally, the type II error could be overspent for any $\theta_{Aj}, j\geq k$. In this case, the information for the $(K-1)$st stage needs to be increased. Due to the monotonicity of $\theta_{Aj}$, we only need to monitor type II error spending under $\theta_A$. Specifically, we will ensure that each stage $k$ has at least $\beta_{min}(K-k+1)$ type II error available for a small value of $\beta_{min}$. Since \texttt{uniroot} solve with a tolerance of \texttt{.Machine\$double.eps\^0.25}, we need to set $\beta_{min}$ above that.
+
 
 @D Check beta-spending and adjust previous stage if needed @{
-  .th.future <- x$rE.seq[k:x$n.stages]
-  .pow.future <- c(rep(x$power.efficacy, x$n.stages-1), x$power) [k:x$n.stages]
-  typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th.future, target = 1 - .pow.future)
-  if (any(typeII.overspent > 0)){
+  beta.min <- .Machine$double.eps^0.25
+  .beta.limit <- beta.min * (x$n.stages - k + 1)
+  typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=1, target = 1 - x$power - .beta.limit)
+  if (typeII.overspent > 0){
     exc_low_i <- function(ii)
-      max(exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th.future,
-                     target = 1-.pow.future))
+      exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=1,
+                     target = 1 - x$power - .beta.limit)
+    if (exc_low_i(1e6) > 0) browser()
     resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
-    ivec[k-1] <- resI_low$root+1e-5
-    ub[k-1] <- uI(I = resI_low$root+1e-5, stage = k-1)
-    lb[k-1] <- lI(I = resI_low$root+1e-5, theta = x$rF.seq[k-1], stage = k-1)
+    ivec[k-1] <- resI_low$root
+    ub[k-1] <- uI(I = resI_low$root, stage = k-1)
+    lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+
   }
 @}
 

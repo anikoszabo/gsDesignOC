@@ -389,17 +389,19 @@ calc.bounds <- function(x, alpha.seq){
         if (x$futility.type == "binding"){
           lb[k-1] <- lI(stage=k-1, theta=x$rF.seq[k-1])
           
-            .th.future <- x$rE.seq[k:x$n.stages]
-            .pow.future <- c(rep(x$power.efficacy, x$n.stages-1), x$power) [k:x$n.stages]
-            typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=.th.future, target = 1 - .pow.future)
-            if (any(typeII.overspent > 0)){
+            beta.min <- .Machine$double.eps^0.25
+            .beta.limit <- beta.min * (x$n.stages - k + 1)
+            typeII.overspent <- exc_low(lb[k-1], stage=k-1, theta=1, target = 1 - x$power - .beta.limit)
+            if (typeII.overspent > 0){
               exc_low_i <- function(ii)
-                max(exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=.th.future,
-                               target = 1-.pow.future))
+                exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=1,
+                               target = 1 - x$power - .beta.limit)
+              if (exc_low_i(1e6) > 0) browser()
               resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
-              ivec[k-1] <- resI_low$root+1e-5
-              ub[k-1] <- uI(I = resI_low$root+1e-5, stage = k-1)
-              lb[k-1] <- lI(I = resI_low$root+1e-5, theta = x$rF.seq[k-1], stage = k-1)
+              ivec[k-1] <- resI_low$root
+              ub[k-1] <- uI(I = resI_low$root, stage = k-1)
+              lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+
             }
           
         } else {
