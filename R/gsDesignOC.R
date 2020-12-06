@@ -182,9 +182,51 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
   }
 
   res <- calc.bounds(x=res, alpha.seq)
-  res$n <- n.fix * res$info /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
+  
+  delta <- ztest.delta(n = n.fix, sig.level=sig.level, power=power)
+  timing <- res$info / max(res$info)
+  probs <- gsProbability(k=res$n.stages, n.I=res$info, a=res$lower, b=res$upper, theta=c(0,1))
 
-  return(res)
+  upper <- sfLinear(alpha=sig.level, t=timing, param=c(timing, res$spending))
+  upper$sf <- sfLinear
+  upper$bound <- probs$upper$bound
+  upper$prob <- probs$upper$prob
+  upper$spend <- res$spending
+
+  lower <- sfLinear(alpha=1 - power, t=timing, param=c(timing, probs$lower$prob[,2]))
+  lower$sf <- sfLinear
+  lower$sf <- c(lower$sf, probs$lower$sf) #has bound & prob
+  lower$bound <- probs$lower$bound
+  lower$prob <- probs$lower$prob
+  lower$spend <- probs$lower$prob[,2]
+
+  gres <- list(
+    k = n.stages,
+    test.type = switch(futility.type, none = 1, binding = 3, "non-binding"=4),
+    alpha = sig.level,
+    beta = 1 - power,
+    astar = 0,
+    delta = delta,
+    n.fix = n.fix,
+    timing = timing,
+    tol = 1e-6, r = 18,
+    n.I = res$info * n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2,
+    maxn.IPlan = 0,
+    nFixSurv = 0,
+    nSurv = 0,
+    endpoint = NULL,
+    delta1 = 1,
+    delta0 = 0,
+    overrun = 0,
+    upper = upper,
+    lower = if (futility.type != "none") lower else NULL,
+    theta = c(0, delta),
+    en = probs$en *  n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
+  )
+  class(gres) <- c("gsDesign")
+  
+
+  return(gres)
 }
 
 

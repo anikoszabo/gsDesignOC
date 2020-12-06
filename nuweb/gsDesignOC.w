@@ -250,9 +250,9 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
   }
 
   res <- calc.bounds(x=res, alpha.seq)
-  res$n <- n.fix * res$info /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
+  @< Create output object @>
 
-  return(res)
+  return(gres)
 }
 
 @}
@@ -355,6 +355,55 @@ test_that("Invalid power inputs give an input error",{
 })
 
 @}
+
+\subsection{gsDesign-compliant output object}
+
+We will try to make an output object of class \texttt{gsDesign}, so the functions in that package will work with the output.
+
+@D Create output object @{
+delta <- ztest.delta(n = n.fix, sig.level=sig.level, power=power)
+timing <- res$info / max(res$info)
+probs <- gsProbability(k=res$n.stages, n.I=res$info, a=res$lower, b=res$upper, theta=c(0,1))
+
+upper <- sfLinear(alpha=sig.level, t=timing, param=c(timing, res$spending))
+upper$sf <- sfLinear
+upper$bound <- probs$upper$bound
+upper$prob <- probs$upper$prob
+upper$spend <- res$spending
+
+lower <- sfLinear(alpha=1 - power, t=timing, param=c(timing, probs$lower$prob[,2]))
+lower$sf <- sfLinear
+lower$sf <- c(lower$sf, probs$lower$sf) #has bound & prob
+lower$bound <- probs$lower$bound
+lower$prob <- probs$lower$prob
+lower$spend <- probs$lower$prob[,2]
+
+gres <- list(
+  k = n.stages,
+  test.type = switch(futility.type, none = 1, binding = 3, "non-binding"=4),
+  alpha = sig.level,
+  beta = 1 - power,
+  astar = 0,
+  delta = delta,
+  n.fix = n.fix,
+  timing = timing,
+  tol = 1e-6, r = 18,
+  n.I = res$info * n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2,
+  maxn.IPlan = 0,
+  nFixSurv = 0,
+  nSurv = 0,
+  endpoint = NULL,
+  delta1 = 1,
+  delta0 = 0,
+  overrun = 0,
+  upper = upper,
+  lower = if (futility.type != "none") lower else NULL,
+  theta = c(0, delta),
+  en = probs$en *  n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
+)
+class(gres) <- c("gsDesign")
+@}
+
 
 \subsection{Direct optimization}
 
@@ -836,6 +885,43 @@ test_that("ztest.I is consistent with asbio::power.z.test",{
 test_that("No data is needed if sig.level = power",{
   i2 <- ztest.I(delta = 0.5, sig.level = 0.1, power=0.1)
   expect_equal(i2, 0)
+  })
+@}
+
+@{
+#'Fixed sample-size effect size for one-sided test
+#'
+#'The \code{ztest.delta} function finds the standardized effect size for a one-sided Z-test with given power
+#'and significance level
+#'#ztest.delta(n=10, sig.level=0.05, power=0.9)
+#'
+#'@@param n numeric; sample size
+#'@@param sig.level numeric; one-sided significance level
+#'@@param power numeric; target power
+#'@@return numeric value with the standardized effect size achieving the target power
+#'@@author Aniko Szabo
+#'@@keywords internal
+#'@@importFrom stats qnorm
+#'
+
+ztest.delta <- function(n, sig.level, power){
+  za <- qnorm(sig.level, lower.tail=FALSE)
+  zb <- qnorm(power)
+  delta <- abs(za+zb) / sqrt(n)
+  delta
+}
+@| ztest.delta @}
+
+@O ../tests/testthat/test_components.R @{
+test_that("ztest.delta is consistent with ztest.I",{
+  i1 <- ztest.I(delta = 0.5, sig.level = 0.05, power=0.8)
+  d1 <- ztest.delta(n = i1, sig.level = 0.05, power=0.8)
+  expect_equal(d1, 0.5)
+  })
+
+test_that("No data is needed if sig.level = power",{
+  d2 <- ztest.delta(n=1, sig.level = 0.1, power=0.1)
+  expect_equal(d2, 0)
   })
 @}
 
