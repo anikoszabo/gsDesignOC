@@ -1,15 +1,16 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# gsDesignOC
+# Operating-characteristics guided group sequential design using the `gsDesignOC`
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-The goal of gsDesignOC is to construct optimal group-sequential designs
-that maintain pre-specified operating characteristics. You can browse
-its [source code](https://github.com/anikoszabo/gsDesignOC).
+The goal of the `gsDesignOC` package is to construct optimal
+group-sequential designs that maintain pre-specified operating
+characteristics. You can browse its [source
+code](https://github.com/anikoszabo/gsDesignOC).
 
 ## Installation
 
