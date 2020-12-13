@@ -18,13 +18,13 @@ test_that("No data is needed if sig.level = power",{
   expect_equal(i2, 0)
   })
 
-test_that("ztest.delta is consistent with ztest.I",{
-  i1 <- ztest.I(delta = 0.5, sig.level = 0.05, power=0.8)
-  d1 <- ztest.delta(n = i1, sig.level = 0.05, power=0.8)
-  expect_equal(d1, 0.5)
-  })
 
-test_that("No data is needed if sig.level = power",{
-  d2 <- ztest.delta(n=1, sig.level = 0.1, power=0.1)
-  expect_equal(d2, 0)
-  })
+
+
+
+
+
+
+
+
+

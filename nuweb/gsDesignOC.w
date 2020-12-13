@@ -250,9 +250,9 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
   }
 
   res <- calc.bounds(x=res, alpha.seq)
-  @< Create output object @>
+  res$n <- n.fix * res$info /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
 
-  return(gres)
+  return(res)
 }
 
 @}
@@ -360,50 +360,62 @@ test_that("Invalid power inputs give an input error",{
 
 We will try to make an output object of class \texttt{gsDesign}, so the functions in that package will work with the output.
 
-@D Create output object @{
-delta <- ztest.delta(n = n.fix, sig.level=sig.level, power=power)
-timing <- res$info / max(res$info)
-probs <- gsProbability(k=res$n.stages, n.I=res$info, a=res$lower, b=res$upper, theta=c(0,1))
+@O ../R/gsDesignOC.R @{
+#'Convert fit to a \code{gsDesign} object
+#'
+#'The \code{as.gsDesign} converts a \code{gsDesignOC} object to a form that works with the
+#' \code{gsDesign} package
+#'
+#'@@export
+#'@@param x an object of class \code{gsDesignOC}
+#'@@return an object of class \code{gsDesign}
+#'@@author Aniko Szabo
+#'@@keywords nonparametric design
+#'@@examples
+#'
+#' require(gsDesign)
+#' g <- gsDesignOC(n.stages=2, rE.seq=c(2,1))
+#' gg <- as.gsDesign(g)
+#' gg
 
-upper <- sfLinear(alpha=sig.level, t=timing, param=c(timing, res$spending))
-upper$sf <- sfLinear
-upper$bound <- probs$upper$bound
-upper$prob <- probs$upper$prob
-upper$spend <- res$spending
+as.gsDesign <- function(x){
 
-lower <- sfLinear(alpha=1 - power, t=timing, param=c(timing, probs$lower$prob[,2]))
-lower$sf <- sfLinear
-lower$sf <- c(lower$sf, probs$lower$sf) #has bound & prob
-lower$bound <- probs$lower$bound
-lower$prob <- probs$lower$prob
-lower$spend <- probs$lower$prob[,2]
+  timing <- x$info / max(x$info)
+  @< Create custom spending functions @>
 
-gres <- list(
-  k = n.stages,
-  test.type = switch(futility.type, none = 1, binding = 3, "non-binding"=4),
-  alpha = sig.level,
-  beta = 1 - power,
-  astar = 0,
-  delta = delta,
-  n.fix = n.fix,
-  timing = timing,
-  tol = 1e-6, r = 18,
-  n.I = res$info * n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2,
-  maxn.IPlan = 0,
-  nFixSurv = 0,
-  nSurv = 0,
-  endpoint = NULL,
-  delta1 = 1,
-  delta0 = 0,
-  overrun = 0,
-  upper = upper,
-  lower = if (futility.type != "none") lower else NULL,
-  theta = c(0, delta),
-  en = probs$en *  n.fix /(qnorm(sig.level, lower.tail=FALSE) + qnorm(power))^2
-)
-class(gres) <- c("gsDesign")
+  gres <- gsDesign::gsDesign(
+    k = x$n.stages,
+    test.type = switch(x$futility.type, none = 1, binding = 3, "non-binding"=4),
+    alpha = x$sig.level,
+    beta = 1 - x$power,
+    timing = timing,
+    n.fix = x$n.fix,
+    sfu = upper_sf,
+    sfupar = upper_par,
+    sfl = lower_sf,
+    sflpar = lower_par
+  )
+
+  return(gres)
+}
+@| as.gsDesign @}
+
+We define a spending function with values equal to the optimal $\alpha_k$ at the optimal time-points, and is linearly interpolated between them. For the lower boundary we need to compute the actual $\beta$-spending first. The \texttt{sfLinear} spending function expects a vector of parameters in which the first half defines the time-points and the second half the corresponding values scaled as the proportion of total error to be spent.
+
+@D Create custom spending functions @{
+  upper_sf <- gsDesign::sfLinear
+  upper_par <- c(timing, cumsum(x$spending)/x$sig.level)
+
+  if (x$futility.type != "none"){
+    probs <- gsDesign::gsProbability(k=x$n.stages, n.I=x$info, a=x$lower, b=x$upper, theta=c(0,1))
+    beta.spend <- cumsum(probs$lower$prob[,2])
+    lower_par <- c(timing,  beta.spend/tail(beta.spend,1))
+    lower_sf <- gsDesign::sfLinear
+  } else {
+    lower_sf <- NULL
+    lower_par <- NULL
+  }
 @}
-
 
 \subsection{Direct optimization}
 
@@ -529,7 +541,7 @@ en <- function(y){
 #'}
 #'@@author Aniko Szabo
 #'@@keywords design
-#'@@importFrom stats optimize optim
+#'@@importFrom stats optimize optim setNames
 #'@@importFrom utils head tail
 #'@@examples
 #'g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
@@ -913,16 +925,16 @@ ztest.delta <- function(n, sig.level, power){
 @| ztest.delta @}
 
 @O ../tests/testthat/test_components.R @{
-test_that("ztest.delta is consistent with ztest.I",{
-  i1 <- ztest.I(delta = 0.5, sig.level = 0.05, power=0.8)
-  d1 <- ztest.delta(n = i1, sig.level = 0.05, power=0.8)
-  expect_equal(d1, 0.5)
-  })
+@%test_that("ztest.delta is consistent with ztest.I",{
+@%  i1 <- ztest.I(delta = 0.5, sig.level = 0.05, power=0.8)
+@%  d1 <- gsDesignOC:::ztest.delta(n = i1, sig.level = 0.05, power=0.8)
+@%  expect_equal(d1, 0.5)
+@%  })
 
-test_that("No data is needed if sig.level = power",{
-  d2 <- ztest.delta(n=1, sig.level = 0.1, power=0.1)
-  expect_equal(d2, 0)
-  })
+@%test_that("No data is needed if sig.level = power",{
+@%  d2 <- gsDesignOC:::ztest.delta(n=1, sig.level = 0.1, power=0.1)
+@%  expect_equal(d2, 0)
+@%})
 @}
 
 
