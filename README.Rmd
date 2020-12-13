@@ -1,0 +1,104 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# gsDesignOC
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of gsDesignOC is to construct optimal group-sequential designs that maintain pre-specified operating characteristics. You can browse its [source code](https://github.com/anikoszabo/gsDesignOC).
+
+## Installation
+
+In the future, this package will be released on CRAN, but currently the development version is available on [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("anikoszabo/gsDesignOC")
+```
+## Basic usage
+
+```{r BasicExample}
+library(gsDesignOC)
+g <- gsDesignOC(n.stages = 2, rE.seq = c(2,1), rF.seq = c(-1,0), r_EN = c(0, 1),
+                sig.level = 0.05, power = 0.8, power.efficacy = 0.8, power.futility = 0.9,
+                futility.type = "non-binding")
+g
+```
+
+
+## Extended Example
+### Group sequential trial without gsDesignOC
+
+We want to design a trial to test the hypotheses $H_0:\mu_1 \leq \mu_2$ at a one-sided 5% significance level, so that 80% power is achieved when $\mu_1 - \mu_2 = 0.5$ (here $\mu_i$ is the mean of group $i$). We want to add two interim analyses, so that we can stop the trial early if the difference between the groups is larger than expected.  The `gsDesign` package (among others) provides tools to construct such group-sequential trials, however one needs to specify the timing of the interim analyses and an error-spending function. Different choices give different sample sizes and decision cutoffs, however there is little guidance on how to make these choices.
+
+First, lets compute the required sample size without interim analyses (assuming equal standard deviation of 1 in each group). Since `power.t.test` returns the per-group sample size, we will multiply the result by 2 to get total sample size.
+
+```{r nFix}
+n0 <- power.t.test(delta=0.5, sd=1, alternative = "one.sided", sig.level=0.05, power=0.8)$n * 2
+n0
+```
+
+We will construct two group-sequential designs: one with the default settings, and one with different custom settings.
+
+```{r NonOptimized1}
+library(gsDesign)
+g1 <- gsDesign(k=3, test.type=1, alpha=0.05, beta=0.2, n.fix=n0)
+g1
+```
+
+```{r NonOptimized2}
+g2 <- gsDesign(k=3, test.type=1, alpha=0.05, beta=0.2, n.fix=n0, sfu="Pocock", timing=c(0.5, 0.7))
+g2
+```
+
+
+Recall that we wanted to the interim analysis to stop early if the actual difference is larger than hypothesized, but we never had to define what we actually mean by that. Let's say we think that the effect could be up to 2-fold higher ($\mu_1-\mu_2 = 1$) or, more realistically, 1.5-fold higher ($\mu_1-\mu_2 = 0.75$). We can look at the probability of stopping by each analysis (ie at or before) for all the alternatives of interest:
+
+```{r ProbStop12}
+cumprob <- function(design, multipliers){
+  p <- gsProbability(d=design, theta=design$delta * multipliers)
+  cum_p <- apply(p$upper$prob, 2, cumsum)
+  dimnames(cum_p) <- list("Analysis"=1:nrow(cum_p), "Multiplier"= multipliers)
+  list(p=cum_p, EN=setNames(p$en, multipliers))}
+(cp1 <- cumprob(design=g1, multipliers = c(0,1,1.5,2)))
+(cp2 <- cumprob(design=g2, multipliers = c(0,1,1.5,2)))
+```
+
+We can see that both of our designs stop by the 3rd (final) analysis with probability 5% and 80% for the null hypothesis (multiplier 0) and alternative hypothesis (multiplier 1), respectively. However, `g1` has a fairly low probability of stopping at the first interim analysis even if the true effect is twice as large as the design effect, while `g2` has high stopping probabilities for even the 1.5-fold larger effect at the first interim, and te second interim analysis seems superfluous. Notably, it also has a larger sample size.
+
+### Optimizing the trial with gsDesignOC
+
+The operating-characteristic guided design in `gsDesignOC` provides an alternative approach that pre-specifies the probability of stopping by each interim analysis for a sequence of target alternatives, and then finds the design satisfying these operating-characteristic constraints that has the smallest expected sample size. 
+
+Here, we will build a design that stops with 80% probability at stage 1 or 2, respectively, when the true effect is 2-fold or 1.5-fold higher than the target effect. Among all the designs with this property, we will select the one with the smallest average of expected sample sizes under the original null and alternative hypotheses.
+
+```{r Optimized}
+library(gsDesignOC)
+g <- gsDesignOC(n.stages = 3, rE.seq=c(2,1.5,1), sig.level=0.05, power=0.8, n.fix=n0,
+                power.efficacy = 0.8, r_EN = c(0,1))
+gg <- as.gsDesign(g)
+gg
+```
+
+We can see that the timing of the analyses is selected automatically, and it is different from both previous designs.
+
+The following summary shows that the target stopping probabilities are reached, and the average of the first two expected sample sizes is smaller than for `g1` and `g2`, even though `g1` does not reach the target interim analysis probabilities at the first stage (and `g2` overshoots them greatly).
+
+```{r OptimalOC}
+(cpopt <- cumprob(gg, multipliers = c(0, 1, 1.5, 2)))
+c(g1 = mean(cp1$EN[1:2]), g2 = mean(cp2$EN[1:2]), gg = mean(cpopt$EN[1:2]))
+```
+

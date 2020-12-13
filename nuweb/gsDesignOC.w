@@ -257,7 +257,6 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
 
 @}
 
-TODO: add check for futility.type  if rF.seq is given
 
 @D Check inputs @{
   if (length(rE.seq) == n.stages - 1){

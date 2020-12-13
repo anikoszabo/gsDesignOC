@@ -6,7 +6,7 @@ gs <- as.package("../gsDesignOC")
 
 # initial setup
 #use_testthat()
-use_readme_rmd()
+#use_readme_rmd()
 
 nuweb(gs)
 shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer gsDesignOC.tex")
@@ -19,6 +19,7 @@ test(gs)
 cov <- package_coverage(gs$path)
 report(cov)
 
+build_readme()
 
 check(gs, check_dir = "c:/Temp", cran = TRUE, manual=TRUE)
 install(gs)
