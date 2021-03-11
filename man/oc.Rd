@@ -4,14 +4,14 @@
 \alias{oc}
 \title{Operating characteristics of a potential design}
 \usage{
-oc(x, r_EN = 1, r_EN.w = rep(1, length(r_EN)))
+oc(x, r_EN = x$r_EN, r_EN.w = x$r_EN.w)
 }
 \arguments{
 \item{x}{object of class \code{gsDesignOC}}
 
-\item{r_EN}{numeric vector of parameter values for which expected sample size calculation is performed}
+\item{r_EN}{numeric vector of parameter values for which expected sample size calculation is performed. Defaults to values used to construct design.}
 
-\item{r_EN.w}{numeric vector of positive weights for each value of \code{r_EN}. Defaults to equal weights.}
+\item{r_EN.w}{numeric vector of positive weights for each value of \code{r_EN}. Defaults to equal weights. Defaults to values used to construct design.}
 }
 \value{
 a list with the following elements:
@@ -34,8 +34,9 @@ efficacy stopping probabilities, but it is included in the futility stopping cal
 g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
           power.futility=0.8, power=0.9,
           futility.type = "non-binding", r_EN=c(1.5, 1, 0))
-oc(g, r_EN = c(1.5, 1, 0))
+oc(g)
 
+oc(g, r_EN = c(2,1), r_EN.w = c(0.5,0.5))
 
 }
 \author{

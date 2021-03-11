@@ -104,7 +104,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
   res <- list(n.stages = n.stages, rE.seq=rE.seq, rF.seq = rF.seq,
               sig.level = sig.level, n.fix = n.fix,
               power=power, power.efficacy = power.efficacy, power.futility = power.futility,
-              futility.type=futility.type)
+              futility.type=futility.type, r_EN = r_EN, r_EN.w = r_EN.w)
   class(res) <- "gsDesignOC"
 
   if (n.stages == 1){
@@ -248,8 +248,8 @@ as.gsDesign <- function(x){
 #'
 #'@export
 #'@param x object of class \code{gsDesignOC}
-#'@param r_EN numeric vector of parameter values for which expected sample size calculation is performed
-#'@param r_EN.w numeric vector of positive weights for each value of \code{r_EN}. Defaults to equal weights.
+#'@param r_EN numeric vector of parameter values for which expected sample size calculation is performed. Defaults to values used to construct design.
+#'@param r_EN.w numeric vector of positive weights for each value of \code{r_EN}. Defaults to equal weights. Defaults to values used to construct design.
 #'@return a list with the following elements:
 #'\describe{
 #'\item{ave.EN}{numeric; weighted average of expected sample sizes under the requested alternatives}
@@ -267,14 +267,14 @@ as.gsDesign <- function(x){
 #'g <- gsDesignOC(n.stages = 2, rE.seq = c(1.5, 1), rF.seq = -1, power.efficacy=0.8,
 #'           power.futility=0.8, power=0.9,
 #'           futility.type = "non-binding", r_EN=c(1.5, 1, 0))
-#'oc(g, r_EN = c(1.5, 1, 0))
+#'oc(g)
 #'
+#'oc(g, r_EN = c(2,1), r_EN.w = c(0.5,0.5))
 #'
 
-oc <- function(x, r_EN=1,  r_EN.w = rep(1, length(r_EN))){
+oc <- function(x, r_EN=x$r_EN,  r_EN.w = x$r_EN.w){
 
   if (length(r_EN.w) != length(r_EN))
-    stop("'r_EN' and 'r_EN.w' should have the same length")
   if (!all(r_EN.w > 0))
     stop("'r_EN.w' should have only positive elements")
 
