@@ -1,7 +1,7 @@
 
-- add r_EN to the gsDesignOC object, and use it in 'oc'
+DONE - add r_EN to the gsDesignOC object, and use it in 'oc'
 - create print.gsDesignOC function
-- gsDesignOC?? function that does not optimize, just takes an alpha-spending sequence
+- gsDesignOC?? function that does not optimize, just takes an alpha-spending sequence: is calc.bounds enough??
 - move the detailed README example to a vignette
 - add check for futility.type  if rF.seq is given
 

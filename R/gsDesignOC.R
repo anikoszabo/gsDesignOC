@@ -50,8 +50,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
                        sig.level = 0.025, power=0.9,
                        power.efficacy=power, power.futility = power,
                        futility.type=c("none","non-binding","binding"),
-                       r_EN = 1,
-                       r_EN.w = rep(1, length(r_EN)),
+                       r_EN = 1, r_EN.w = rep(1, length(r_EN)),
                        control=ocControl()){
   
     if (length(rE.seq) == n.stages - 1){
@@ -382,19 +381,21 @@ calc.bounds <- function(x, alpha.seq){
 
 
   
-  exc <- function(u, I, stage,  theta, target){
+  exc <- function(u, I, stage,  theta, target, use_lb){
+    aa <- if (use_lb) {c(head(lb, stage-1), -20)} else {rep(-20, stage)}
     gg <- gsDesign::gsProbability(k=stage,
                                   theta=theta,
                                   n.I =c(head(ivec, stage-1),I),
-                                  a = c(head(lb, stage-1), -20),
+                                  a = aa,
                                   b = c(head(ub, stage-1), u))
      sum(gg$upper$prob[1:stage]) - target
   }
   
   
-  uI <- function(I, stage){
+  uI <- function(I, stage, use_lb){
     res <- uniroot(exc, interval=c(-20, 20),
                    I = I, stage=stage, theta=0, target = alpha.cum[stage],
+                   use_lb = use_lb,
                    extendInt = "downX")
    res$root
   }
@@ -437,8 +438,9 @@ calc.bounds <- function(x, alpha.seq){
 
       
       
-        if (x$futility.type == "binding"){
+        if (x$futility.type != "none"){
           lb[k-1] <- lI(stage=k-1, theta=x$rF.seq[k-1])
+          if (x$futility.type == "binding"){
           
             beta.min <- .Machine$double.eps^0.25
             .beta.limit <- beta.min * (x$n.stages - k + 1)
@@ -447,21 +449,22 @@ calc.bounds <- function(x, alpha.seq){
               exc_low_i <- function(ii)
                 exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=1,
                                target = 1 - x$power - .beta.limit)
-              if (exc_low_i(1e6) > 0) browser()
               resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
               ivec[k-1] <- resI_low$root
-              ub[k-1] <- uI(I = resI_low$root, stage = k-1)
-              lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+              ub[k-1] <- uI(I = resI_low$root, stage = k-1, use_lb = TRUE)
+              lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1, use_lb = TRUE)
 
             }
           
+          }
         } else {
           lb[k-1] <- -20
         }
       
       
-      exc_i <- function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
-                                      target = power.target)
+
+      exc_i <- function(ii)exc(uI(ii, k, use_lb = (x$futility.type=="binding")), ii, stage=k, theta=.th,
+                                      target = power.target, use_lb = TRUE)
 
       minI <- max(ztest.I(delta = .th, power=power.target, sig.level=alpha.cum[k]),
                   ivec[k-1])
@@ -470,23 +473,15 @@ calc.bounds <- function(x, alpha.seq){
       if (curr.exc > 0){
         # already past target power
         ivec[k] <- minI
-        ub[k] <- lb[k] <- uI(minI, k)
+        ub[k] <- lb[k] <- uI(minI, k, use_lb=(x$futility.type=="binding"))
       } else {
         resI <- uniroot(exc_i, interval=c(minI, 2*minI), extendInt = "upX")
         ivec[k] <- resI$root
-        ub[k] <- lb[k] <- uI(resI$root, k)
+        ub[k] <- lb[k] <- uI(resI$root, k, use_lb=(x$futility.type=="binding"))
       }
       
     
     }
-  }
-
-  if (x$futility.type == "non-binding"){
-    
-      for (k in 1:(x$n.stages-1)){
-        lb[k] <- lI(stage=k, theta=x$rF.seq[k])
-      }
-    
   }
 
   x$upper <- ub

@@ -227,8 +227,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
                        sig.level = 0.025, power=0.9,
                        power.efficacy=power, power.futility = power,
                        futility.type=c("none","non-binding","binding"),
-                       r_EN = 1,
-                       r_EN.w = rep(1, length(r_EN)),
+                       r_EN = 1, r_EN.w = rep(1, length(r_EN)),
                        control=ocControl()){
   @< Check inputs @>
 
@@ -399,7 +398,8 @@ as.gsDesign <- function(x){
 }
 @| as.gsDesign @}
 
-We define a spending function with values equal to the optimal $\alpha_k$ at the optimal time-points, and is linearly interpolated between them. For the lower boundary we need to compute the actual $\beta$-spending first. The \texttt{sfLinear} spending function expects a vector of parameters in which the first half defines the time-points and the second half the corresponding values scaled as the proportion of total error to be spent.
+We define a spending function with values equal to the optimal $\alpha_k$ at the optimal time-points, and is linearly interpolated between them. For the lower boundary we need to compute the actual $\beta$-spending first.
+The \texttt{sfLinear} spending function expects a vector of parameters in which the first half defines the time-points and the second half the corresponding values scaled as the proportion of total error to be spent.
 
 @D Create custom spending functions @{
   upper_sf <- gsDesign::sfLinear
@@ -680,10 +680,6 @@ calc.bounds <- function(x, alpha.seq){
     }
   }
 
-  if (x$futility.type == "non-binding"){
-    @< Add non-binding lower bound @>
-  }
-
   x$upper <- ub
   x$lower <- lb
   x$info <- ivec
@@ -725,14 +721,15 @@ $$e(u \mid \I) = Pr\big(
  \bigcup \{l_1< Z_1<u_1,\ldots, l_{k-1}< Z_{k-1} < u_{k-1}, Z(\I) \geq u \} \mid \theta\big).$$
 
 If $l_i$ is set to $-\infty$, then that is equivalent to not having a lower boundary.
-We will need to solve equations of the form $e(u)=c$, so we will actually define a function for the difference of the LHS and RHS.
+We will need to solve equations of the form $e(u)=c$, so we will actually define a function for the difference of the LHS and RHS. For non-binding futility, the lower bound is not needed under the null and is needed under the alternative hypotheses, so there is an option to control it.
 
 @d Define upper bound exceedance  @{
-exc <- function(u, I, stage,  theta, target){
+exc <- function(u, I, stage,  theta, target, use_lb){
+  aa <- if (use_lb) {c(head(lb, stage-1), -20)} else {rep(-20, stage)}
   gg <- gsDesign::gsProbability(k=stage,
                                 theta=theta,
                                 n.I =c(head(ivec, stage-1),I),
-                                a = c(head(lb, stage-1), -20),
+                                a = aa,
                                 b = c(head(ub, stage-1), u))
    sum(gg$upper$prob[1:stage]) - target
 }
@@ -741,9 +738,10 @@ exc <- function(u, I, stage,  theta, target){
 To find $u(I)$ we need to solve $a(u|\I) = \sum_{i=1}^k \Delta\alpha_i=\tilde{\alpha}_k$. Since $a(z_\alpha\mid\I_N) \geq \alpha$ [NOTE: I AM NOT SURE ABOUT THAT] and $a(\infty | \I_N) = \tilde{\alpha}_{k-1}$, the solution for fixed $\I_N$ is between $z_\alpha$ and $20$ (which is essentially $\infty$).
 
 @d Define function to find u(I) @{
-uI <- function(I, stage){
+uI <- function(I, stage, use_lb){
   res <- uniroot(exc, interval=c(-20, 20),
                  I = I, stage=stage, theta=0, target = alpha.cum[stage],
+                 use_lb = use_lb,
                  extendInt = "downX")
  res$root
 }
@@ -775,8 +773,9 @@ if (k == x$n.stages){
 Note that $b(I_{k-1}) \leq \pi_E$ and $b(\I_{fix}(\theta_{Ak}-\theta_0, \tilde{\alpha}_k, \pi_E)) \leq \pi_E$, we can start the search at the maximum of these two values.
 
 @D Find I for next stage @{
-exc_i <- function(ii)exc(uI(ii, k), ii, stage=k, theta=.th,
-                                target = power.target)
+
+exc_i <- function(ii)exc(uI(ii, k, use_lb = (x$futility.type=="binding")), ii, stage=k, theta=.th,
+                                target = power.target, use_lb = TRUE)
 
 minI <- max(ztest.I(delta = .th, power=power.target, sig.level=alpha.cum[k]),
             ivec[k-1])
@@ -785,11 +784,11 @@ curr.exc <- exc_i(minI)
 if (curr.exc > 0){
   # already past target power
   ivec[k] <- minI
-  ub[k] <- lb[k] <- uI(minI, k)
+  ub[k] <- lb[k] <- uI(minI, k, use_lb=(x$futility.type=="binding"))
 } else {
   resI <- uniroot(exc_i, interval=c(minI, 2*minI), extendInt = "upX")
   ivec[k] <- resI$root
-  ub[k] <- lb[k] <- uI(resI$root, k)
+  ub[k] <- lb[k] <- uI(resI$root, k, use_lb=(x$futility.type=="binding"))
 }
 @}
 
@@ -819,11 +818,13 @@ lI <- function(stage, theta, I=ivec[stage]){
 }
 @}
 
-We need to find the lower bound for stage $k-1$, before computing the size of the next stage. If the boundary is not binding, we need to overwrite $l_k:= u_k$ that was indicating the "last" stage so far to $l_k=-\infty$.
+We need to find the lower bound for stage $k-1$, before computing the size of the next stage. If the boundary is not binding, we need to overwrite $l_k:= u_k$ that was indicating the ``last" stage so far to $l_k=-\infty$.
 @D Find lower bound for previous stage @{
-  if (x$futility.type == "binding"){
+  if (x$futility.type != "none"){
     lb[k-1] <- lI(stage=k-1, theta=x$rF.seq[k-1])
+    if (x$futility.type == "binding"){
     @< Check beta-spending and adjust previous stage if needed @>
+    }
   } else {
     lb[k-1] <- -20
   }
@@ -840,22 +841,14 @@ With a binding boundary it is possible that the addition of $l_{K-1}$ overspends
     exc_low_i <- function(ii)
       exc_low(lI(I=ii, theta=x$rF.seq[k-1], stage=k-1), ii, stage=k-1, theta=1,
                      target = 1 - x$power - .beta.limit)
-    if (exc_low_i(1e6) > 0) browser()
     resI_low <- uniroot(exc_low_i, interval=c(ivec[k-1], 2*ivec[k-1]), extendInt = "downX")
     ivec[k-1] <- resI_low$root
-    ub[k-1] <- uI(I = resI_low$root, stage = k-1)
-    lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1)
+    ub[k-1] <- uI(I = resI_low$root, stage = k-1, use_lb = TRUE)
+    lb[k-1] <- lI(I = resI_low$root, theta = x$rF.seq[k-1], stage = k-1, use_lb = TRUE)
 
   }
 @}
 
-
-For a non-binding boundary, the lower bound is added only after the entire upper bound has been calculated.
-@D Add non-binding lower bound @{
-  for (k in 1:(x$n.stages-1)){
-    lb[k] <- lI(stage=k, theta=x$rF.seq[k])
-  }
-@}
 
 
 \section{Utility help-functions}
