@@ -32,6 +32,10 @@
 #'@param r_EN.w numeric vector of length equal to that of \code{r_EN}. The weights of the
 #'elements of \code{r_EN} in the optimality criterion. It will be normalized to a sum of 1.
 #'Defaults to equal weights.
+#'@param spending (optional) numeric vector of stage-wise alpha-spending with positive values
+#' summing to \code{sig.level} used as starting values for direct optimization. If used in conjunction with
+#' \code{optim.method="none"} within \code{ocControl}, a non-optimized design using this alpha-spending
+#' will be returned. The starting value will be selected automatically for the default value of NULL.
 #'@param control list of parameters controlling the estimation altorithm to replace the default
 #'values returned by the \code{glsControl} function.
 #'@return an object of class \code{gsDesignOC}
@@ -44,6 +48,13 @@
 #'           power.efficacy=0.8, power.futility=0.8, power=0.9,
 #'           futility.type = "non-binding")
 #'
+#' ## pre-specifiy alpha-spending
+#'gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
+#'           power.efficacy=0.8, power.futility=0.8, power=0.9,
+#'           futility.type = "non-binding", spending=c(0.005, 0.02),
+#'           control = ocControl(optim.method="none"))
+#'
+
 #'@name gsDesignOC
 
 gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
@@ -51,6 +62,7 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
                        power.efficacy=power, power.futility = power,
                        futility.type=c("none","non-binding","binding"),
                        r_EN = 1, r_EN.w = rep(1, length(r_EN)),
+                       spending = NULL,
                        control=ocControl()){
   
     if (length(rE.seq) == n.stages - 1){
@@ -97,6 +109,16 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
     if (!missing(control))
       controlvals[names(control)] <- control
 
+    if (!is.null(spending)){
+      if (any(spending <= 0))
+        stop("Invalid input: `spending` should contain only positive values")
+      if (!isTRUE(all.equal(sum(spending), sig.level)))
+        stop("Invalid input: the values of `spending` should sum to `sig.level`")
+    }
+    if (control$optim.method == "none" & is.null(spending)){
+      stop("Invalid input: with `optim.method` set to `none`, the alpha-spending sequence has to be specified in `spending`")
+    }
+
   
 
   # create skeleton gsDesignOC object
@@ -108,6 +130,8 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
 
   if (n.stages == 1){
     alpha.seq <- sig.level
+  } else if (control$optim.method == "none"){
+    alpha.seq <- spending
   } else if (control$optim.method == "direct"){
   
     
@@ -129,7 +153,12 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
       y.res <- oo$minimum
       alpha.seq <- sig.level * exp(c(y.res,0)) / sum(exp(c(y.res,0)))
     } else {
-      y.start <- -log(seq(n.stages, 2, by=-1))
+
+      if (!is.null(spending)){
+        y.start <- log(head(spending,-1)/tail(spending,1))
+      } else {
+        y.start <- -log(seq(n.stages, 2, by=-1))
+      }
 
       oo <- optim(y.start, fn=.cp, method="Nelder-Mead")
 
@@ -340,7 +369,9 @@ oc <- function(x, r_EN=x$r_EN,  r_EN.w = x$r_EN.w){
 #'
 #'@export
 #'@param optim.method character; defines the optimization method used: \code{"dynamic"} uses a recursive dynamic algorithm #' which selects the alpha-spending one stage at a time, \code{"direct"} uses the "Nelder-Mead" algorithm from
-#' \code{\link{optim}} to simultaneously search over all possible alpha-spending sequences.
+#' \code{\link{optim}} to simultaneously search over all possible alpha-spending sequences. If set to \code{"none"}, then
+#' no optimization is performed, and the designe corresponding to the starting value of the alpha-spending sequence,
+#' which can be specified in the \code{spending} option of the call, will be returned.
 #'@return a list with components for each of the possible arguments
 #'@author Aniko Szabo
 #'@keywords design
@@ -348,7 +379,7 @@ oc <- function(x, r_EN=x$r_EN,  r_EN.w = x$r_EN.w){
 #'
 #'ocControl(optim.method = "direct")
 
-ocControl <- function(optim.method = c("direct", "dynamic")){
+ocControl <- function(optim.method = c("direct", "dynamic","none")){
   optim.method <- match.arg(optim.method)
   list(optim.method = optim.method)
 }

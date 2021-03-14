@@ -16,6 +16,7 @@ gsDesignOC(
   futility.type = c("none", "non-binding", "binding"),
   r_EN = 1,
   r_EN.w = rep(1, length(r_EN)),
+  spending = NULL,
   control = ocControl()
 )
 }
@@ -58,6 +59,11 @@ Defaults to 1, implying minimization under the alternative hypothesis.}
 elements of \code{r_EN} in the optimality criterion. It will be normalized to a sum of 1.
 Defaults to equal weights.}
 
+\item{spending}{(optional) numeric vector of stage-wise alpha-spending with positive values
+summing to \code{sig.level} used as starting values for direct optimization. If used in conjunction with
+\code{optim.method="none"} within \code{ocControl}, a non-optimized design using this alpha-spending
+will be returned. The starting value will be selected automatically for the default value of NULL.}
+
 \item{control}{list of parameters controlling the estimation altorithm to replace the default
 values returned by the \code{glsControl} function.}
 }
@@ -73,6 +79,12 @@ for a group-sequential trial
 gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
           power.efficacy=0.8, power.futility=0.8, power=0.9,
           futility.type = "non-binding")
+
+## pre-specifiy alpha-spending
+gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
+          power.efficacy=0.8, power.futility=0.8, power=0.9,
+          futility.type = "non-binding", spending=c(0.005, 0.02),
+          control = ocControl(optim.method="none"))
 
 }
 \references{

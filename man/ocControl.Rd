@@ -4,11 +4,13 @@
 \alias{ocControl}
 \title{Control values for gsDesignOC}
 \usage{
-ocControl(optim.method = c("direct", "dynamic"))
+ocControl(optim.method = c("direct", "dynamic", "none"))
 }
 \arguments{
 \item{optim.method}{character; defines the optimization method used: \code{"dynamic"} uses a recursive dynamic algorithm #' which selects the alpha-spending one stage at a time, \code{"direct"} uses the "Nelder-Mead" algorithm from
-\code{\link{optim}} to simultaneously search over all possible alpha-spending sequences.}
+\code{\link{optim}} to simultaneously search over all possible alpha-spending sequences. If set to \code{"none"}, then
+no optimization is performed, and the designe corresponding to the starting value of the alpha-spending sequence,
+which can be specified in the \code{spending} option of the call, will be returned.}
 }
 \value{
 a list with components for each of the possible arguments
