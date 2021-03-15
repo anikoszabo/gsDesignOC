@@ -378,6 +378,103 @@ test_that("Invalid power inputs give an input error",{
 
 @}
 
+\subsection{Print result}
+
+@O ../R/gsDesignOC.R @{
+#'@@export
+#'@@rdname gsDesignOC
+
+print.gsDesignOC <- function(x,...){
+  cat("Group sequential design with ")
+  cat(100 * x$power, "% power and", 100 * x$sig.level,
+        "% Type I Error.\n\n")
+  if (x$futility.type == "non-binding") {
+    cat("Type I error computations assume trial continues if lower bound is crossed.\n")
+    cat("Power computations assume trial stops if a bound is crossed.\n\n")
+  }
+  else if (x$futility.type =="binding")
+    cat("Power and type I error computations assume trial stops if a bound is crossed.\n\n")
+
+  # modified from print.gsDesign
+  if (x$n.fix != 1) {
+      ntxt <- "N "
+      nval <- ceiling(x$n)
+      nspace <- log10(x$n[x$n.stages])
+      for (i in 1:nspace) {
+          cat(" ")
+      }
+      cat("            ")
+  }
+  else {
+      ntxt <- "Ratio*"
+      nval <- round(x$n, 3)
+      cat("        Sample\n")
+      cat("         Size ")
+  }
+  if (x$futility.type != "none") {
+    if (min(x$lower) < 0) {
+      cat(" ")
+    }
+    cat(" ---Lower bounds--  ---Upper bounds--")
+    y <- cbind(1:x$n.stages,
+               nval,
+               round(x$lower, 2),
+               round(stats::pnorm(x$lower), 4),
+               round(x$upper, 2),
+               round(stats::pnorm(-x$upper), 4))
+    colnames(y) <- c("Stage", ntxt, "Z   ",
+            "   Nominal p", "  Z   ", "  Nominal p")
+    }
+  else {
+    y <- cbind(1:x$n.stages,
+               nval,
+               round(x$upper, 2),
+               round(stats::pnorm(-x$upper), 4))
+    colnames(y) <- c("Stage", ntxt, "Z  ",   "Nominal p")
+  }
+  rownames(y) <- rep(" ", x$n.stages)
+  cat("\n")
+  print(y)
+  if (x$n.fix == 1) {
+    cat("* Sample size ratio compared to fixed design with no interim\n")
+  }
+
+  ox <- oc(x)
+  cat("\nThe average expected sample size is ", format(round(ox$ave.EN,3), nsmall=4), ":\n")
+  nmat <- cbind(round(x$r_EN, 2),
+                round(x$r_EN.w,3),
+                round(ox$EN.vec,3))
+  colnames(nmat) <- c("Alternative", "Weight", "EN")
+  rownames(nmat) <- rep("", length(x$r_EN))
+  print(nmat)
+  cat("\n\n")
+
+  cat("Optimized under the restrictions on the cumulative probabilities of stopping at or before each stage:\n")
+  cat("Stopping for efficacy\n")
+  umat <- cbind(1:x$n.stages,
+                round(x$rE.seq, 2),
+                round(c(rep(x$power.efficacy, x$n.stages-1), x$power), 4),
+                round(ox$efficacy.cumcross, 4))
+  colnames(umat) <- c("Stage", "Alternative","Target","Actual")
+  rownames(umat) <- rep("", x$n.stages)
+  print(umat)
+
+  if (x$futility.type != "none"){
+    cat("Stopping for futility\n")
+    lmat <- cbind(1:x$n.stages,
+                  round(x$rE.seq, 2),
+                  round(c(rep(x$power.futility, x$n.stages-1), 1-x$sig.level), 4),
+                  round(ox$futility.cumcross, 4))
+    colnames(lmat) <- c("Stage", "Alternative","Target","Actual")
+    rownames(lmat) <- rep("", x$n.stages)
+    print(lmat)
+  }
+  cat("\n")
+
+  invisible(x)
+}
+@}
+
 \subsection{gsDesign-compliant output object}
 
 We will try to make an output object of class \texttt{gsDesign}, so the functions in that package will work with the output.

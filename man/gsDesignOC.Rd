@@ -2,6 +2,7 @@
 % Please edit documentation in R/gsDesignOC.R
 \name{gsDesignOC}
 \alias{gsDesignOC}
+\alias{print.gsDesignOC}
 \title{Find optimal group-sequential design}
 \usage{
 gsDesignOC(
@@ -19,6 +20,8 @@ gsDesignOC(
   spending = NULL,
   control = ocControl()
 )
+
+\method{print}{gsDesignOC}(x, ...)
 }
 \arguments{
 \item{n.stages}{integer; number of stages planned. One stage implies no interim analysis.}

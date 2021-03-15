@@ -49,3 +49,6 @@ system.time(g0b <- gsDesignOC(n.stages=3, rE.seq = c(2,1.5,1), rF.seq=c(-1,-0.5,
 all.equal(g0, g0b)
 all.equal(oc(g0), oc(g0b))
 
+## test printing
+g <- gsDesignOC(n.stages=3, rE.seq = c(2,1.5,1), rF.seq=c(-1,-0.5,0), futility.type = "binding",
+                r_EN=c(-1,0,1), r_EN.w = c(0.25, 0.5, 0.25))
