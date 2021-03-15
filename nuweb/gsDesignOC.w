@@ -308,9 +308,11 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
     stop("Invalid input: The value of `power.futility` should be between 0 and 1-`sig.level`.")
 
   futility.type <- match.arg(futility.type)
-  if (futility.type != "none"){
-    if (is.null(rF.seq)) stop("Invalid input: `rF.seq` should be specified if a futility bound is requested")
-  }
+  if (futility.type != "none" && is.null(rF.seq))
+    stop("Invalid input: `rF.seq` should be specified if a futility bound is requested")
+  if (futility.type == "none" && !is.null(rF.seq))
+    message("Note: `rF.seq` is ignored, as no futility bound is requested.")
+
 
   controlvals <- ocControl()
   if (!missing(control))
@@ -444,7 +446,7 @@ print.gsDesignOC <- function(x,...){
   nmat <- cbind(round(x$r_EN, 2),
                 round(x$r_EN.w,3),
                 round(ox$EN.vec,3))
-  colnames(nmat) <- c("Alternative", "Weight", "EN")
+  colnames(nmat) <- c("Alternative", "Weight", "E{N}")
   rownames(nmat) <- rep("", length(x$r_EN))
   print(nmat)
   cat("\n\n")

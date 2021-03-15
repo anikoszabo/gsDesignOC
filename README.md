@@ -30,50 +30,33 @@ g <- gsDesignOC(n.stages = 2, rE.seq = c(2,1), rF.seq = c(-1,0), r_EN = c(0, 1),
                 sig.level = 0.05, power = 0.8, power.efficacy = 0.8, power.futility = 0.9,
                 futility.type = "non-binding")
 g
-#> $n.stages
-#> [1] 2
+#> Group sequential design with 80 % power and 5 % Type I Error.
 #> 
-#> $rE.seq
-#> [1] 2 1
+#> Type I error computations assume trial continues if lower bound is crossed.
+#> Power computations assume trial stops if a bound is crossed.
 #> 
-#> $rF.seq
-#> [1] -1  0
+#>         Sample
+#>          Size   ---Lower bounds--  ---Upper bounds--
+#>   Stage Ratio*  Z       Nominal p   Z      Nominal p
+#>       1  0.475 -0.43       0.3331   2.58      0.0049
+#>       2  1.013  1.66       0.9516   1.66      0.0484
+#> * Sample size ratio compared to fixed design with no interim
 #> 
-#> $sig.level
-#> [1] 0.05
+#> The average expected sample size is  0.9600 :
+#>  Alternative Weight  E{N}
+#>            0      1 1.011
+#>            1      1 0.910
 #> 
-#> $n.fix
-#> [1] 1
 #> 
-#> $power
-#> [1] 0.8
-#> 
-#> $power.efficacy
-#> [1] 0.8
-#> 
-#> $power.futility
-#> [1] 0.9
-#> 
-#> $futility.type
-#> [1] "non-binding"
-#> 
-#> $upper
-#> [1] 2.411574 1.680736
-#> 
-#> $lower
-#> [1] -0.3450637  1.6807356
-#> 
-#> $info
-#> [1] 2.645819 6.295366
-#> 
-#> $spending
-#> [1] 0.007941925 0.042058075
-#> 
-#> $n
-#> [1] 0.427949 1.018246
-#> 
-#> attr(,"class")
-#> [1] "gsDesignOC"
+#> Optimized under the restrictions on the cumulative probabilities of stopping at or before each stage:
+#> Stopping for efficacy
+#>  Stage Alternative Target Actual
+#>      1           2    0.8  0.800
+#>      2           1    0.8  0.802
+#> Stopping for futility
+#>  Stage Alternative Target Actual
+#>      1           2   0.90 0.9000
+#>      2           1   0.95 0.9504
 ```
 
 ## Extended Example
