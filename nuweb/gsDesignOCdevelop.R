@@ -8,7 +8,7 @@ gs <- as.package("../gsDesignOC")
 #use_testthat()
 #use_readme_rmd()
 
-nuweb(gs)
+nuweb(gs) # need to run after changes to .w files
 shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer gsDesignOC.tex")
 
 document(gs)
