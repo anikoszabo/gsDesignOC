@@ -8,14 +8,15 @@ gs <- as.package("../gsDesignOC")
 #use_testthat()
 #use_readme_rmd()
 
-nuweb(gs) # need to run after changes to .w files
+
+nuweb() # need to run after changes to .w files
 shell("cd c:/gsDesignOC/nuweb/ && texify --pdf --quiet --run-viewer gsDesignOC.tex")
 
-document(gs)
-run_examples(gs)
-load_all(gs)
+document()
+run_examples()
+load_all()
 
-test(gs)
+test()
 cov <- package_coverage(gs$path)
 report(cov)
 
