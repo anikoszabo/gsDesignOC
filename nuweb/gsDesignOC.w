@@ -58,7 +58,7 @@ Characteristic & Notation & Event \\ \hline
 Rejection \emph{at} stage $k$ & $\R_k$ &
   $\{Z_1<u_1,\ldots,Z_{k-1}<u_{k-1}, Z_k \geq u_k \}$   \\
 Continuation \emph{at} stage $k$ & $\C_k$ &
-  $\{Z_1<u_1,\ldots,Z_{i-1}<u_{k-1}, Z_k < u_k \}$  \\ \hline
+  $\{Z_1<u_1,\ldots,Z_{k-1}<u_{k-1}, Z_k < u_k \}$  \\ \hline
 \multicolumn{3}{l}{\textbf{Non-binding futility boundary}}\\
 Acceptance \emph{at} stage $k$ & $\A_k$ &
   $\{l_1 < Z_1<u_1,\ldots,l_{k-1} < Z_{k-1}<u_{k-1}, Z_i \leq l_k \}$  \\ \hline
@@ -73,6 +73,7 @@ Acceptance \emph{at} stage $k$ & $\A_k$ &
 \end{center}
 \end{table}
 
+
 \begin{table}\caption{Target operating characteristics}\label{T:OCdef}
 \begin{center}
 \begin{tabular}{p{4cm}|c|c|c}
@@ -86,11 +87,11 @@ Overall power &
   $\geq\pi$\\
 Stop by stage $k$ for efficacy  &
   $\ds\bigcup_{i=1}^k \R_i$ & $\theta_{Ak}$ &
-  $\geq\pi_E$\\ \hline
+  $\geq\pi_{Ek}$\\ \hline
 \multicolumn{4}{l}{\textbf{Non-binding futility boundary}}\\
 Stop by stage $k$ for futility  &
   $\ds\bigcup_{i=1}^k \A_i$ & $\theta_{0k}$ &
-  $\geq\pi_F$\\ \hline
+  $\geq\pi_{Fk}$\\ \hline
 \multicolumn{4}{l}{\textbf{Binding futility boundary}}\\
 Overall type I error &
   $\ds\bigcup_{i=1}^K \R^*_i$ & $\theta_0$ &
@@ -100,47 +101,51 @@ Overall power &
   $\geq\pi$\\
 Stop by stage $k$ for efficacy  &
   $\ds\bigcup_{i=1}^k \R^*_i$ & $\theta_{Ak}$ &
-  $\geq\pi_E$\\
+  $\geq\pi_{Ek}$\\
 Stop by stage $k$ for futility  &
   $\ds\bigcup_{i=1}^k \A_i$ & $\theta_{0k}$ &
-  $\geq\pi_F$\\
+  $\geq\pi_{Fk}$\\
 \end{tabular}
 \end{center}
 \end{table}
 
+%% TODO: switch C1-C2 and C3-C4
+%% Some restriction $(\pi_{Ek} - \pi_{E,k-1})(\pi_{Ak} - \pi_{A,k-1}) < 0$ is probably needed to ensure
+%% that at least one of them changes
+
 \begin{theorem}\label{Th:exists} A design satisfying the operating characteristic requirements of Table~\ref{T:OCdef} exists, if the following conditions are satisfied:
 \begin{itemize}
-\item[C1.] $\pi_E \leq \pi$
+\item[C1.] $\pi_{E1}\leq \pi_{E2} \leq\cdots\leq \pi_{E,K-1} \leq \pi$
 \item[C2.] $\theta_{A1} \geq \theta_{A2} \geq \cdots \geq \theta_{A,K-1} \geq \theta_A$
 \end{itemize}
 Additionally, if a futility boundary is needed:
 \begin{itemize}
-\item[C3.]  $\pi_F \leq 1-\alpha$
+\item[C3.]  $\pi_{F1} \leq\pi_{F2} \leq\cdots\leq \pi_{F,K-1} \leq 1-\alpha$
 \item[C4.] $\theta_{01} \leq \theta_{02} \leq \cdots \leq \theta_{0,K-1} \leq \theta_0$
 \end{itemize}
 \end{theorem}
-\begin{proof} We will consier the cases of no, non-binding, and binding futility boundaries separately.
+\begin{proof} We will consider the cases of no, non-binding, and binding futility boundaries separately.
 
 \textbf{I. no futility boundary} We will use proof by induction over the number of stages $K$. When $K=1$, only the overall type I error and power need to be considered, and the well-known single-stage design achieving the overall information \begin{equation}\label{E:Ifix}
 \I_\text{fix} = \frac{(z_\alpha + z_{1-\beta})^2}{(\theta_A - \theta_0)^2}
 \end{equation}
 will satisfy the requirements with $u_K = z_\alpha$.
 
-Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_E$ at $\theta_{A1},\ldots,\theta{A,K-2}$, overall power $\pi_E$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satistfy the overall power and type I error restrictions.
+Now suppose we can construct the desired design for $K-1$ stages, and we try to add an additional stage. For the first $K-1$ stages select the boundary $u_1,\ldots,u_{K-1}$ and information times $\I_{n_1},\ldots,\I_{n_{K-1}}$ to achieve over these $K-1$ stages stage-specific stopping probabilities $\pi_{E,K-2}$ at $\theta_{A1},\ldots,\theta_{A,K-2}$, overall power $\pi_{E,K-1}$ at $\theta_{A,K-1}$, and overall type I error $\alpha_{K-1} = \alpha-\Delta\alpha_K$, where $0 < \Delta\alpha_K <\alpha$ is an arbitrary value. With these choices, the requirements for all the stage-specific probabilities for the $K$-stage design are satisfied. We need to select $I_{n_K}$ and $u_K$ to satisfy the overall power and type I error restrictions.
 
 Consider the function $a(u \mid \I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i \}\bigcup \{Z_1 < u_1,\ldots, Z_{K-1} < u_{K-1}, Z(N) \geq u \} \mid \theta_{0}\big)$, that gives the type I error if the boundary is set at $u$ for the last stage for any given $I_N > I_{n_{K-1}}$. Under $H_0$, $Z(N) ~ \sim N(0,1)$, so $a(z_\alpha\mid\I_N) \geq \alpha$.  On the other hand, $a(\infty | \I_N) = \alpha - \Delta\alpha_K < \alpha$ by the design of the first $K-1$ stages. Since $a$ is monotone in $u$, for any $I_N$ there exists a cutoff $u_K(\I_N)$ for which $a(u_K(\I_N)) = \alpha$, ie for which the overall type I error is maintained at the desired level.
 
-Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1 < u_1, \ldots, Z_{K-1}< u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$. If $b(\I_{K-1}) \geq \pi$, then we can set $\I_N = \I_{K-1}$.
+Next consider the function $b(\I_N) = Pr\big(\{\bigcup_{i=1}^{K-1}\R_i\} \bigcup \{Z_1 < u_1, \ldots, Z_{K-1}< u_{K-1}, Z(N) \geq u_K(\I_N)  \mid \theta_{A}\big)$ that gives the power to reject $H_0$ if the final analysis is set at information $\I_N > I_{n_{K-1}}$ and the cutoff $u_K(\I_N)$ defined above is used. If $b(\I_{K-1}) \geq \pi$, then we can set $\I_N = \I_{K-1}$.
 %Since $\theta_A \leq \theta_{A,K-1}$, $b(\I_{K-1}) \leq \pi_E \leq \pi$.
 Otherwise, note that $b(\infty) = 1$, and $b$ is monotone in $\I_N$. Thus we can select a value $n_K$ such that $b(\I_{n_K}) = \pi$, which will provide the desired design.
 
 \textbf{II. Non-binding futility boundary}
-The overall power, type I error, and stage-specific efficacy power requirements do not depend on a non-binding futility boundary, so we can start with a design constructed without a futility boundary. We then need to calculate the lower bounds $l_k$ to satisfy the futility stopping probabilities. For stage 1, we need $Pr(Z_1 < l_1 | \theta_{01}) = \pi_F$, where $Z_1 \sim N(\sqrt{I_1}(\theta_{01}-\theta_0), 1)$. Thus $l_1 = z_{1-\pi_F} + \sqrt{I}(\theta_{01}-\theta_0)$ satisfies the target power. Given conditions C3-C4, $l_1 \leq z_\alpha$, while $u_1 \geq z_\alpha$, so $l_1 \leq u_1$.
+The overall power, type I error, and stage-specific efficacy power requirements do not depend on a non-binding futility boundary, so we can start with a design constructed without a futility boundary. We then need to calculate the lower bounds $l_k$ to satisfy the futility stopping probabilities. For stage 1, we need $Pr(Z_1 < l_1 | \theta_{01}) = \pi_{F1}$, where $Z_1 \sim N(\sqrt{I_1}(\theta_{01}-\theta_0), 1)$. Thus $l_1 = z_{1-\pi_{F1}} + \sqrt{I_1}(\theta_{01}-\theta_0)$ satisfies the target power. Given conditions C3--C4, $l_1 \leq z_\alpha$, while $u_1 \geq z_\alpha$, so $l_1 \leq u_1$.
 
-At stage $k$, consider the function $c(l) = Pr(l_1 < Z_1< u_1, \ldots, l_{k-1} < Z_{k-1}< u_{k-1}, Z_k < l \mid \theta_{0k})$. Since $\theta_{0k} \leq \theta_0$, $c(z_\alpha) \geq 1-\alpha \geq \pi_F$, while $c(-\infty) = 0$, so a value $l_k$ can be selected for which $c(l_k) = \pi_F$.
+At stage $k$, consider the function $c(l) = Pr(l_1 < Z_1< u_1, \ldots, l_{k-1} < Z_{k-1}< u_{k-1}, Z_k < l \mid \theta_{0k})$. Since $\theta_{0k} \leq \theta_0$, $c(z_\alpha) \geq 1-\alpha \geq \pi_{Fk}$, while $c(-\infty) = 0$, so a value $l_k$ can be selected for which $c(l_k) = \pi_{Fk}$.
 
 \textbf{III. Binding futility boundary}
-The construction follows the induction-based approach of part I. During the inductive step in addition to $I_K$ and $u_K$, we need to find a value for $l_{K-1}$ that will satisfy the futility boundary restriction. This can be done as shown in part II before proceeding with the selection of the parameters of the last stage. A potential complication compared to the efficacy-only situation, is that by adding $l_{K-1}$ we might overspend the type II error, $Pr(\bigcup_{i=1}^{K-1}\A_i | \theta_A) > 1-\pi$. In this case we would not be able to select a value for $\I_N$ such that $b^*(\I_N)\geq \pi$, because even $b^*(\infty) < \pi$. One of the possible solutions is to adjust the timing of the $(K-1)st$ stage to reduce its beta-spending. As $\I_{K-1}$ is increased beyond the value that provided power $\pi_E$ at significance level $\alpha-\Delta\alpha_K$, if we maintain the significance level, $P(\R^*_{K-1}|\theta_{A,K-1})$ will increase, so the power will be maintained. However $Pr(\A_{K-1}|\theta_A)$ will decrease, so we can find a value of $I_{K-1}$ for which $Pr(\bigcup_{i=1}^{K-1}\A_i | \theta_A) = 1-\pi$. Starting from this modified design with $K-1$ stages, we can now construct the required $K$-stage design.
+The construction follows the induction-based approach of part I. During the inductive step in addition to $I_K$ and $u_K$, we need to find a value for $l_{K-1}$ that will satisfy the futility boundary restriction. This can be done as shown in part II before proceeding with the selection of the parameters of the last stage. A potential complication compared to the efficacy-only situation is that by adding $l_{K-1}$ we might overspend the type II error, $Pr(\bigcup_{i=1}^{K-1}\A_i | \theta_A) > 1-\pi$. In this case we would not be able to select a value for $\I_N$ such that $b^*(\I_N)\geq \pi$, because even $b^*(\infty) < \pi$. One of the possible solutions is to adjust the timing of the $(K-1)st$ stage to reduce its beta-spending. As $\I_{K-1}$ is increased beyond the value that provided power $\pi_E$ at significance level $\alpha-\Delta\alpha_K$, if we maintain the significance level, $P(\R^*_{K-1}|\theta_{A,K-1})$ will increase, so the power will be maintained. However $Pr(\A_{K-1}|\theta_A)$ will decrease, so we can find a value of $I_{K-1}$ for which $Pr(\bigcup_{i=1}^{K-1}\A_i | \theta_A) = 1-\pi$. Starting from this modified design with $K-1$ stages, we can now construct the required $K$-stage design.
 
 \end{proof}
 
@@ -183,13 +188,13 @@ where $\I(0,1)$ is computed assuming $\theta_0 = 0$ and $\theta_A=1$.
 #'
 #'@@export
 #'@@param n.stages integer; number of stages planned. One stage implies no interim analysis.
-#'@@param rE.seq monotone decreasing numeric vector of length \code{n.stages} ending with 1.
+#'@@param rE.seq monotone non-increasing numeric vector of length \code{n.stages} ending with 1.
 #' If it has length \code{n.stages-1}, a 1 will be appended to the end.
 #' For the k-th interim value the study will stop for efficacy at or before the k-th stage with probability
-#' \code{power.efficacy} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.
-#'@@param rF.seq monotone increasing numeric vector of length \code{n.stages} ending with 0.
+#' \code{power.efficacy[k]} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.
+#'@@param rF.seq monotone non-decreasing numeric vector of length \code{n.stages} ending with 0.
 #' If it has length \code{n.stages-1}, a 0 will be appended to the end.
-#' The study will stop for futility at or before the k-th stage with probability \code{power.futility}.
+#' The study will stop for futility at or before the k-th stage with probability \code{power.futility[k]}.
 #' if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis, ie
 #' the true effect is actually in the opposite direction of the hypothesized effect.
 #' The default value of \code{NULL} implies no futility monitoring.
@@ -197,8 +202,8 @@ where $\I(0,1)$ is computed assuming $\theta_0 = 0$ and $\theta_A=1$.
 #' in which case the resulting sample sizes can be interpreted as being relative to the single-stage study sample size.
 #'@@param sig.level numeric; the one-sided significance level. The default is 0.025.
 #'@@param power numeric; the desired study power. The default is 0.9.
-#'@@param power.efficacy numeric; the probability of stopping for efficacy at stage k under \code{rE.seq}
-#'@@param power.futility numeric; the probability of stopping for futility at stage k under \code{rF.seq}
+#'@@param power.efficacy numeric value or non-decreasing vector; the probability of stopping for efficacy at stage k under \code{rE.seq}
+#'@@param power.futility numeric value or non-decreasing vector; the probability of stopping for futility at stage k under \code{rF.seq}
 #'@@param futility.type character string, one of \code{c("none", "non-binding","binding")} or their
 #'unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
 #'is used, then whether the effect of the futility boundary should be included
@@ -225,6 +230,11 @@ where $\I(0,1)$ is computed assuming $\theta_0 = 0$ and $\theta_A=1$.
 #'           power.efficacy=0.8, power.futility=0.8, power=0.9,
 #'           futility.type = "non-binding")
 #'
+#' ## non-constant target power
+#'gsDesignOC(2, rE.seq = c(1,1), rF.seq = c(0,0),
+#'           power.efficacy=0.5, power.futility=0.5, power=0.9,
+#'           futility.type = "binding")
+
 #' ## pre-specifiy alpha-spending
 #'gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
 #'           power.efficacy=0.8, power.futility=0.8, power=0.9,
