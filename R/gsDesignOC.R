@@ -6,13 +6,13 @@
 #'
 #'@export
 #'@param n.stages integer; number of stages planned. One stage implies no interim analysis.
-#'@param rE.seq monotone decreasing numeric vector of length \code{n.stages} ending with 1.
+#'@param rE.seq monotone non-increasing numeric vector of length \code{n.stages} ending with 1.
 #' If it has length \code{n.stages-1}, a 1 will be appended to the end.
 #' For the k-th interim value the study will stop for efficacy at or before the k-th stage with probability
-#' \code{power.efficacy} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.
-#'@param rF.seq monotone increasing numeric vector of length \code{n.stages} ending with 0.
+#' \code{power.efficacy[k]} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.
+#'@param rF.seq monotone non-decreasing numeric vector of length \code{n.stages} ending with 0.
 #' If it has length \code{n.stages-1}, a 0 will be appended to the end.
-#' The study will stop for futility at or before the k-th stage with probability \code{power.futility}.
+#' The study will stop for futility at or before the k-th stage with probability \code{power.futility[k]}.
 #' if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis, ie
 #' the true effect is actually in the opposite direction of the hypothesized effect.
 #' The default value of \code{NULL} implies no futility monitoring.
@@ -20,8 +20,9 @@
 #' in which case the resulting sample sizes can be interpreted as being relative to the single-stage study sample size.
 #'@param sig.level numeric; the one-sided significance level. The default is 0.025.
 #'@param power numeric; the desired study power. The default is 0.9.
-#'@param power.efficacy numeric; the probability of stopping for efficacy at stage k under \code{rE.seq}
-#'@param power.futility numeric; the probability of stopping for futility at stage k under \code{rF.seq}
+#'@param power.efficacy numeric value or non-decreasing vector of length \code{n.stages} with #'values between `sig.level` and `power`, ending in `power`. If it has length \code{n.stages-1}, #'the value of `power` will be appended to the end. The k-th element is the desired probability #'of stopping for efficacy at stage k under \code{rE.seq[k]}
+#'@param power.futility numeric value or non-decreasing vector  of length \code{n.stages} with values  between `0` and `1-sig.level`, ending with `1-sig.level`.
+#'If it has length \code{n.stages-1}, the value of `1-sig.level` will be appended to the end. #'The k-th element is the desired probability of stopping for futility at stage k under \code{rF.seq[k]}
 #'@param futility.type character string, one of \code{c("none", "non-binding","binding")} or their
 #'unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
 #'is used, then whether the effect of the futility boundary should be included
@@ -48,6 +49,11 @@
 #'           power.efficacy=0.8, power.futility=0.8, power=0.9,
 #'           futility.type = "non-binding")
 #'
+#' ## non-constant target power
+#'gsDesignOC(2, rE.seq = c(1,1), rF.seq = c(0,0),
+#'           power.efficacy=0.5, power.futility=0.5, power=0.9,
+#'           futility.type = "binding")
+
 #' ## pre-specifiy alpha-spending
 #'gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
 #'           power.efficacy=0.8, power.futility=0.8, power=0.9,
@@ -73,8 +79,8 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
     } else {
       stop("Invalid input: `rE.seq` should have length equal to `n.stages` or `n.stages-1`.")
     }
-    if (any(diff(rE.seq) >= 0))
-      stop("Invalid input: `rE.seq` should form a decreasing sequence")
+    if (any(diff(rE.seq) > 0))
+      stop("Invalid input: `rE.seq` should form a non-increasing sequence")
 
     if (length(rF.seq) == n.stages - 1){
       rF.seq <- c(rF.seq, 0)
@@ -84,8 +90,8 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
     } else if (!is.null(rF.seq)) {
       stop("Invalid input: When not NULL, `rF.seq` should have length equal to `n.stages` or `n.stages-1`.")
     }
-    if (any(diff(rF.seq) <= 0))
-      stop("Invalid input: `rF.seq` should form an increasing sequence")
+    if (any(diff(rF.seq) < 0))
+      stop("Invalid input: `rF.seq` should form an non-decreasing sequence")
 
     if (length(r_EN.w) != length(r_EN))
         stop("Invalid input: `r_EN.w` should have the same length as `r_EN`")
@@ -94,11 +100,32 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
 
     if (power >= 1 || power <= sig.level)
       stop("Invalid input: `power` should be between `sig.level` and 1 (exclusive).")
-    if (power.efficacy > power || power.efficacy <= sig.level)
-      stop("Invalid input: The value of `power.efficacy` should be between `sig.level` and `power`.")
 
-    if (power.futility > 1-sig.level || power.futility <= 0)
-      stop("Invalid input: The value of `power.futility` should be between 0 and 1-`sig.level`.")
+    if (length(power.efficacy) == 1) power.efficacy <- rep(power.efficacy, n.stages - 1)
+    if (length(power.efficacy) == n.stages - 1){
+      # add overall power at the end of interim power values
+      power.efficacy <- c(power.efficacy, power)
+    }
+    if (length(power.efficacy) == n.stages){
+       if (!isTRUE(all.equal(power.efficacy[n.stages], power)))
+        stop("Invalid input: When 'power.futility' has length `n.stages`, its last element should be equal to `power`.")} else {
+      stop("Invalid input: `power.efficacy` should have length 1, `n.stages-1`, or `n.stages`")
+    }
+    if (any(diff(c(sig.level, power.efficacy)) < 0))
+      stop("Invalid input: `power.efficacy` should form a non-decreasing sequence with values  between `sig.level` and `power`.")
+
+    if (length(power.futility) == 1) power.futility <- rep(power.futility, n.stages - 1)
+    if (length(power.futility) == n.stages - 1){
+      # add 1-alpha at the end of interim power values
+      power.futility <- c(power.futility, 1-sig.level)
+    }
+    if (length(power.futility) == n.stages){
+       if (!isTRUE(all.equal(power.futility[n.stages], 1-sig.level)))
+        stop("Invalid input: When 'power.futility' has length `n.stages`, its last element should be equal to `1-sig.level`.")} else {
+      stop("Invalid input: `power.futility` should have length 1, `n.stages-1`, or `n.stages`")
+    }
+    if (any(diff(c(0, power.futility)) < 0))
+      stop("Invalid input: `power.futility` should form a non-decreasing sequence with values  between 0 and 1-`sig.level`.")
 
     futility.type <- match.arg(futility.type)
     if (futility.type != "none" && is.null(rF.seq))
@@ -181,7 +208,9 @@ gsDesignOC <- function(n.stages, rE.seq, rF.seq=NULL, n.fix=1,
         xx <- list(n.stages = x$n.stages - 1,
                    rE.seq = head(rE.seq, -1),
                    rF.seq = head(rF.seq, -1),
-                   power=x$power.efficacy, power.efficacy = x$power.efficacy, power.futility = x$power.futility,
+                   power = tail(x$power.efficacy, 1),
+                   power.efficacy = head(x$power.efficacy, -1),
+                   power.futility = head(x$power.futility, -1),
                    futility.type=x$futility.type)
         class(xx) <- "gsDesignOC"
 
@@ -290,7 +319,7 @@ print.gsDesignOC <- function(x,...){
   cat("Stopping for efficacy\n")
   umat <- cbind(1:x$n.stages,
                 round(x$rE.seq, 2),
-                round(c(rep(x$power.efficacy, x$n.stages-1), x$power), 4),
+                round(x$power.efficacy, 4),
                 round(ox$efficacy.cumcross, 4))
   colnames(umat) <- c("Stage", "Alternative","Target","Actual")
   rownames(umat) <- rep("", x$n.stages)
@@ -299,8 +328,8 @@ print.gsDesignOC <- function(x,...){
   if (x$futility.type != "none"){
     cat("Stopping for futility\n")
     lmat <- cbind(1:x$n.stages,
-                  round(x$rE.seq, 2),
-                  round(c(rep(x$power.futility, x$n.stages-1), 1-x$sig.level), 4),
+                  round(x$rF.seq, 2),
+                  round(x$power.futility, 4),
                   round(ox$futility.cumcross, 4))
     colnames(lmat) <- c("Stage", "Alternative","Target","Actual")
     rownames(lmat) <- rep("", x$n.stages)
@@ -540,14 +569,14 @@ calc.bounds <- function(x, alpha.seq){
   
   lI <- function(stage, theta, I=ivec[stage]){
     res <- uniroot(exc_low, interval=c(-20, qnorm(x$sig.level, lower.tail=FALSE)),
-                   stage=stage, theta=theta, target = x$power.futility, I=I,
+                   stage=stage, theta=theta, target = x$power.futility[stage], I=I,
                    extendInt = "upX")
    res$root
   }
   
 
 
-  ivec[1] <- ztest.I(delta=x$rE.seq[1], sig.level=alpha.seq[1], power=x$power.efficacy)
+  ivec[1] <- ztest.I(delta=x$rE.seq[1], sig.level=alpha.seq[1], power=x$power.efficacy[1])
   ub[1] <- qnorm(alpha.seq[1], lower.tail=FALSE)
 
 
@@ -555,11 +584,7 @@ calc.bounds <- function(x, alpha.seq){
     for (k in 2:x$n.stages){
     
       
-      if (k == x$n.stages){
-        power.target <- x$power
-      } else {
-        power.target <- x$power.efficacy
-      }
+      power.target <- x$power.efficacy[k]
       .th <- x$rE.seq[k]
 
       
@@ -598,8 +623,8 @@ calc.bounds <- function(x, alpha.seq){
 
       if (curr.exc > 0){
         # already past target power
-        ivec[k] <- minI
-        ub[k] <- lb[k] <- uI(minI, k, use_lb=(x$futility.type=="binding"))
+        ivec[k] <- minI + .Machine$double.eps^0.25
+        ub[k] <- lb[k] <- uI(ivec[k], k, use_lb=(x$futility.type=="binding"))
       } else {
         resI <- uniroot(exc_i, interval=c(minI, 2*minI), extendInt = "upX")
         ivec[k] <- resI$root

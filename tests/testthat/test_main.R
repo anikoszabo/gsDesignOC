@@ -42,7 +42,8 @@ test_that("Invalid power inputs give an input error",{
   expect_error(gsDesignOC(n.stages = 1, rE.seq=2, power= -0.1), "^Invalid input:")
   expect_error(gsDesignOC(n.stages = 1, rE.seq=2, power= 0.8, power.efficacy = 0.9), "^Invalid input:")
   expect_error(gsDesignOC(n.stages = 1, rE.seq=2, power= 0.8, power.efficacy = -0.1), "^Invalid input:")
+  expect_error(gsDesignOC(n.stages = 3, rE.seq=c(2,1.5), power= 0.8, power.efficacy = c(0.8,0.5)), "^Invalid input:")
   expect_error(gsDesignOC(n.stages = 1, rE.seq=2, sig.level=0.1, power.futility = 0.95), "^Invalid input:")
   expect_error(gsDesignOC(n.stages = 1, rE.seq=2, sig.level=0.1, power.futility = -0.1), "^Invalid input:")
-})
+  expect_error(gsDesignOC(n.stages = 3, rE.seq=c(2,1.5), rF.seq=c(-1,-0.5), power= 0.8, power.futility = c(0.8,0.5)), "^Invalid input:")})
 
