@@ -26,14 +26,14 @@ gsDesignOC(
 \arguments{
 \item{n.stages}{integer; number of stages planned. One stage implies no interim analysis.}
 
-\item{rE.seq}{monotone decreasing numeric vector of length \code{n.stages} ending with 1.
+\item{rE.seq}{monotone non-increasing numeric vector of length \code{n.stages} ending with 1.
 If it has length \code{n.stages-1}, a 1 will be appended to the end.
 For the k-th interim value the study will stop for efficacy at or before the k-th stage with probability
-\code{power.efficacy} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.}
+\code{power.efficacy[k]} if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis.}
 
-\item{rF.seq}{monotone increasing numeric vector of length \code{n.stages} ending with 0.
+\item{rF.seq}{monotone non-decreasing numeric vector of length \code{n.stages} ending with 0.
 If it has length \code{n.stages-1}, a 0 will be appended to the end.
-The study will stop for futility at or before the k-th stage with probability \code{power.futility}.
+The study will stop for futility at or before the k-th stage with probability \code{power.futility[k]}.
 if the true effect is \code{rE.seq[k]} times the effect under the alternative hypothesis, ie
 the true effect is actually in the opposite direction of the hypothesized effect.
 The default value of \code{NULL} implies no futility monitoring.}
@@ -45,9 +45,10 @@ in which case the resulting sample sizes can be interpreted as being relative to
 
 \item{power}{numeric; the desired study power. The default is 0.9.}
 
-\item{power.efficacy}{numeric; the probability of stopping for efficacy at stage k under \code{rE.seq}}
+\item{power.efficacy}{numeric value or non-decreasing vector of length \code{n.stages} with #'values between `sig.level` and `power`, ending in `power`. If it has length \code{n.stages-1}, #'the value of `power` will be appended to the end. The k-th element is the desired probability #'of stopping for efficacy at stage k under \code{rE.seq[k]}}
 
-\item{power.futility}{numeric; the probability of stopping for futility at stage k under \code{rF.seq}}
+\item{power.futility}{numeric value or non-decreasing vector  of length \code{n.stages} with values  between `0` and `1-sig.level`, ending with `1-sig.level`.
+If it has length \code{n.stages-1}, the value of `1-sig.level` will be appended to the end. #'The k-th element is the desired probability of stopping for futility at stage k under \code{rF.seq[k]}}
 
 \item{futility.type}{character string, one of \code{c("none", "non-binding","binding")} or their
 unique abbreviations. Specifies whether a futility boundary should not be used at all ("none"), or if it
@@ -83,6 +84,10 @@ gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
           power.efficacy=0.8, power.futility=0.8, power=0.9,
           futility.type = "non-binding")
 
+## non-constant target power
+gsDesignOC(2, rE.seq = c(1,1), rF.seq = c(0,0),
+          power.efficacy=0.5, power.futility=0.5, power=0.9,
+          futility.type = "binding")
 ## pre-specifiy alpha-spending
 gsDesignOC(2, rE.seq = c(1.5,1), rF.seq = c(-0.5,0),
           power.efficacy=0.8, power.futility=0.8, power=0.9,
